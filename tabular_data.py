@@ -1,4 +1,4 @@
-def clean_tabular_data():
+def clean_tabular_data(df):
 
     def remove_rows_with_missing_ratings(df):
         df = df[df['Cleanliness_rating'].notna()]
@@ -15,6 +15,7 @@ def clean_tabular_data():
     def set_default_feature_values(df):
         return df
     
+    return df
 
 if __name__ == "__main__":
     import pandas as pd
