@@ -16,6 +16,12 @@ def clean_tabular_data(df):
         df[['guests', 'beds', 'bathrooms', 'bedrooms']] = df[['guests', 'beds', 'bathrooms', 'bedrooms']].fillna(value=1)
         return df
     
+    def load_airbnb(df, label="label"):
+        df = df.select_dtypes(include='number')
+        labels = df[label]
+        features = df.drop(label)
+        return (features, labels)
+
     df = remove_rows_with_missing_ratings(df)
     df = combine_description_strings(df)
     df = set_default_feature_values(df)
