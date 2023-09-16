@@ -13,8 +13,13 @@ def clean_tabular_data(df):
         return df
 
     def set_default_feature_values(df):
+        df[['guests', 'beds', 'bathrooms', 'bedrooms']] = df[['guests', 'beds', 'bathrooms', 'bedrooms']].fillna(value=1)
         return df
     
+    df = remove_rows_with_missing_ratings(df)
+    df = combine_description_strings(df)
+    df = set_default_feature_values(df)
+
     return df
 
 if __name__ == "__main__":
