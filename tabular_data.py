@@ -25,17 +25,26 @@ def clean_tabular_data(df):
         df[['guests', 'beds', 'bathrooms', 'bedrooms']] = df[['guests', 'beds', 'bathrooms', 'bedrooms']].fillna(value=1)
         return df
     
-    def load_airbnb(df, label="label"):
-        df = df.select_dtypes(include='number')
-        labels = df[label]
-        features = df.drop(df.drop(columns=[label]))
-        return (features, labels)
 
     df = remove_rows_with_missing_ratings(df)
     df = combine_description_strings(df)
     df = set_default_feature_values(df)
 
     return df
+
+def load_airbnb(df, label="label"):
+    """
+        Selects numberical data only and returns two dataframes, splitting features from labels.
+        Parameters:
+            A pandas dataframe; the name of the label
+        Returns:
+            A tuple containing model features (numeric only)
+            A tuple containing the model labels
+    """
+    df = df.select_dtypes(include='number')
+    labels = df[label]
+    features = df.drop(df.drop(columns=[label]))
+    return (features, labels)
 
 if __name__ == "__main__":
     import pandas as pd
