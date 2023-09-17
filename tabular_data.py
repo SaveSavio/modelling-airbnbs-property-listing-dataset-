@@ -1,6 +1,15 @@
 def clean_tabular_data(df):
-
+    """
+        Main Function to clean the Airbnb dataset before analysis
+    """
     def remove_rows_with_missing_ratings(df):
+        """
+            Removes the rows with missing values in each of the rating columns.
+            Parameters:
+                a pandas dataframe
+            Returns:
+                the same type
+        """
         df = df[df['Cleanliness_rating'].notna()]
         return df
 
@@ -19,7 +28,7 @@ def clean_tabular_data(df):
     def load_airbnb(df, label="label"):
         df = df.select_dtypes(include='number')
         labels = df[label]
-        features = df.drop(label)
+        features = df.drop(df.drop(columns=[label]))
         return (features, labels)
 
     df = remove_rows_with_missing_ratings(df)
