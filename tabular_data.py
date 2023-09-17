@@ -43,7 +43,7 @@ def load_airbnb(df, label="label"):
     """
     df = df.select_dtypes(include='number')
     labels = df[label]
-    features = df.drop(columns=[label])
+    features = df.drop(columns=[label, 'Unnamed: 0', 'Unnamed: 19'])
     return (features, labels)
 
 if __name__ == "__main__":
