@@ -10,7 +10,9 @@ def clean_tabular_data(df):
             Returns:
                 the same type
         """
-        df = df[df['Cleanliness_rating'].notna()]
+        #df = df[df['Cleanliness_rating'].notna()]
+        df = df.dropna(subset=['Cleanliness_rating', 'Accuracy_rating', 'Communication_rating', 'Location_rating',
+                               'Check-in_rating', 'Value_rating'], axis=0, how='any')
         return df
 
     def combine_description_strings(df):
