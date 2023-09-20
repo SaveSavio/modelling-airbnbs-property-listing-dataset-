@@ -27,7 +27,7 @@ print(f'The number of training examples is {X_train.shape[0]}\n The number of la
 
 # create a simple linear regression model
 # model = make_pipeline(StandardScaler(), SGDRegressor(max_iter=10000, tol=1e-3))
-model = SGDRegressor(max_iter=10000, tol=1e-3)
+model = SGDRegressor()
 model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
@@ -40,20 +40,39 @@ print('rˆ2 = ', r2)
 import itertools
 import typing
 
-def grid_search(hyperparameters: typing.Dict[str, typing.Iterable]):
-    keys, values = zip(*hyperparameters.items())
-    yield from (dict(zip(keys, v)) for v in itertools.product(*values))
+
+def custom_tune_regression_model_hyperparameters(model_class, grid):
+    
+    
+    def grid_search(hyperparameters: typing.Dict[str, typing.Iterable]):
+        keys, values = zip(*hyperparameters.items())
+        yield from (dict(zip(keys, v)) for v in itertools.product(*values))
 
 
-grid = {
-    "n_estimators": [10, 50, 100],
-    "criterion": ["mse", "mae"],
-    "min_samples_leaf": [2, 1],
-}
+        grid = {
+            "max_iter": [100, 1000, 10000],
+            "degree": [1, 2, 3, 4, 5],
+            "alpha": [0.1, 0.01, 0.001, 0.0001]
+            "l1": [1, 0.7, 0.5, 0.2, 0]
+            }
+    # initialize variables holding best sets of parameters and loss
+    best_hyperparams, best_loss = None, np.inf
 
-for i, hyperparams in enumerate(grid_search(grid)):
-    print(i, hyperparams)
+    for i, hyperparams in enumerate(grid_search(grid)):
+        print(i, hyperparams)
+        for hyperparams in grid_search(grid):
+            model = SGDRegressor(**hyperparams)
+            model.fit(X_train, y_train)
 
-def custom_tune_regression_model_hyperparameters(SGDregressor):
-    pass
+            y_validation_pred = model.predict(X_validation)
+            validation_loss = mean_squared_error(y_validation, y_validation_pred)
 
+            print(f"H-Params: {hyperparams} Validation loss: {validation_loss}")
+            if validation_loss < best_loss:
+                best_loss = validation_loss
+                best_hyperparams = hyperparams
+
+        print(f"Best loss: {best_loss}")
+        print(f"Best hyperparameters: {best_hyperparams}")
+
+# https://github.com/rhasanbd/Linear-Regression-Extensive-Adventure/blob/master/Linear%20Regression-5-Polynomial%20SGD%20Regressor%20Model%20Selection.ipynb
