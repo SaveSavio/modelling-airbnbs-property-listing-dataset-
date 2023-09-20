@@ -49,12 +49,11 @@ def custom_tune_regression_model_hyperparameters(model_class, grid):
         yield from (dict(zip(keys, v)) for v in itertools.product(*values))
 
 
-        grid = {
-            "max_iter": [100, 1000, 10000],
+        grid = {"max_iter": [100, 1000, 10000],
             "degree": [1, 2, 3, 4, 5],
-            "alpha": [0.1, 0.01, 0.001, 0.0001]
-            "l1": [1, 0.7, 0.5, 0.2, 0]
-            }
+            "alpha": [0.1, 0.01, 0.001, 0.0001],
+            "l1": [1, 0.7, 0.5, 0.2, 0]}
+        
     # initialize variables holding best sets of parameters and loss
     best_hyperparams, best_loss = None, np.inf
 
