@@ -2,6 +2,7 @@ def clean_tabular_data(df):
     """
         Main Function to clean the Airbnb dataset before analysis
     """
+    # TO DO: clarify if the 3 functions below should be indented or not
     def remove_rows_with_missing_ratings(df):
         """
             Removes the rows with missing values in each of the rating columns.
@@ -10,6 +11,7 @@ def clean_tabular_data(df):
             Returns:
                 the same type
         """
+        # TO DO: remove line below once function is tested
         #df = df[df['Cleanliness_rating'].notna()]
         df = df.dropna(subset=['Cleanliness_rating', 'Accuracy_rating', 'Communication_rating', 'Location_rating',
                                'Check-in_rating', 'Value_rating'], axis=0, how='any')
@@ -34,7 +36,7 @@ def clean_tabular_data(df):
 
     return df
 
-def load_airbnb(df, label="label"):
+def load_airbnb(df, label="label", numeric_only=False):
     """
         Selects numberical data only and returns two dataframes, splitting features from labels.
         Parameters:
@@ -43,7 +45,9 @@ def load_airbnb(df, label="label"):
             A tuple containing model features (numeric only)
             A tuple containing the model labels
     """
-    df = df.select_dtypes(include='number')
+    # remove all non-numerical features from the dataset
+    if numeric_only == True:
+        df = df.select_dtypes(include='number')
     labels = df[label]
     features = df.drop(columns=[label, 'Unnamed: 0', 'Unnamed: 19'])
     return (features, labels)

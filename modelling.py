@@ -9,16 +9,18 @@ from sklearn.preprocessing import StandardScaler # need to understand if best us
 from sklearn.linear_model import SGDRegressor
 
 df = pd.read_csv("./airbnb-property-listings/tabular_data/clean_tabular_data.csv")
-features, labels = load_airbnb(df, label="Price_Night")
+features, labels = load_airbnb(df, label="Price_Night", numeric_only=True)
 
+# TO DO: consider the necessity of scaling the data
 # Create a StandardScaler instance
-scaler = StandardScaler()
-
+#scaler = StandardScaler()
 # Fit and transform the data
-scaled_features = scaler.fit_transform(features)
+#scaled_features = scaler.fit_transform(features)
+#X_train, X_test, y_train, y_test = model_selection.train_test_split(
+#    scaled_features, labels, test_size=0.3)
 
 X_train, X_test, y_train, y_test = model_selection.train_test_split(
-    scaled_features, labels, test_size=0.3)
+    features, labels, test_size=0.3)
 
 X_validation, X_test, y_validation, y_test = model_selection.train_test_split(
     X_test, y_test, test_size=0.5)
@@ -43,7 +45,10 @@ import typing
 
 def custom_tune_regression_model_hyperparameters(model_class, grid):
     
-    
+    ## TO DO:
+    ## I might need to use a decorator to pass a class to a function
+    # @ClassDecorator
+
     def grid_search(hyperparameters: typing.Dict[str, typing.Iterable]):
         keys, values = zip(*hyperparameters.items())
         yield from (dict(zip(keys, v)) for v in itertools.product(*values))
@@ -58,13 +63,13 @@ def custom_tune_regression_model_hyperparameters(model_class, grid):
     best_hyperparams, best_loss = None, np.inf
 
     for i, hyperparams in enumerate(grid_search(grid)):
-        print(i, hyperparams)
+        print("grid search:\n", i, hyperparams)
         for hyperparams in grid_search(grid):
-            model = SGDRegressor(**hyperparams)
+            model = model_class(**hyperparams)
             model.fit(X_train, y_train)
 
             y_validation_pred = model.predict(X_validation)
-            validation_loss = mean_squared_error(y_validation, y_validation_pred)
+            validation_loss = metrics.mean_squared_error(y_validation, y_validation_pred)
 
             print(f"H-Params: {hyperparams} Validation loss: {validation_loss}")
             if validation_loss < best_loss:
