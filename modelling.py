@@ -10,6 +10,9 @@ from sklearn.preprocessing import StandardScaler
 from tabular_data import load_airbnb
 from typing import Type
 
+import itertools
+import typing
+
 
 df = pd.read_csv("./airbnb-property-listings/tabular_data/clean_tabular_data.csv")
 features, labels = load_airbnb(df, label="Price_Night", numeric_only=True)
@@ -44,7 +47,7 @@ print('r2 = ', r2)
 # import typing
 
 
-def custom_tune_regression_model_hyperparameters(class_obj: Type, grid: dict, X_train, X_validation, X_test,
+def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, grid: dict, X_train, X_validation, X_test,
                                                  y_train, y_validation, y_test):
     """
         The function should take in as arguments:
@@ -59,7 +62,36 @@ def custom_tune_regression_model_hyperparameters(class_obj: Type, grid: dict, X_
     Note that the function should take in a model class, not an instance of that class, 
     so that it can initialise that class with the hyperparameters provided.
     """
-    pass
+    best_hyperparams, best_loss = None, np.inf
+
+    def grid_search(hyperparameters: typing.Dict[str, typing.Iterable]):
+        keys, values = zip(*hyperparameters.items())
+        yield from (dict(zip(keys, v)) for v in itertools.product(*values))
+
+    for hyperparams in grid_search(grid):
+        model = mode_class_obj(**hyperparams)
+        model.fit(X_train, y_train)
+
+    y_validation_pred = model.predict(X_validation)
+    validation_loss = mean_squared_error(y_validation, y_validation_pred)
+
+    print(f"H-Params: {hyperparams} Validation loss: {validation_loss}")
+    if validation_loss < best_loss:
+        best_loss = validation_loss
+        best_hyperparams = hyperparams
+
+    y_pred = model.predict(X_test)
+    test_loss = mean_squared_error(y_test, y_pred)
+
+    model_performance = {"best hyperparameters": best_hyperparams, "validation_RMSE": test_loss}
+
+    return model_performance
 
 
+grid = {"max_iter": [100, 1000, 10000],
+   # "degree": [1, 2, 3, 4, 5],
+    "alpha": [0.1, 0.01, 0.001, 0.0001],
+    "l1": [1, 0.7, 0.5, 0.2, 0]}
 
+#model_performance = custom_tune_regression_model_hyperparameters(grid=grid)
+#print(model_performance)
