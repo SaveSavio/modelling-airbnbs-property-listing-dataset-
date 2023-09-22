@@ -12,7 +12,7 @@ def clean_tabular_data(df):
                 the same type
         """
         # TO DO: remove line below once function is tested
-        #df = df[df['Cleanliness_rating'].notna()]
+        # df = df[df['Cleanliness_rating'].notna()]
         df = df.dropna(subset=['Cleanliness_rating', 'Accuracy_rating', 'Communication_rating', 'Location_rating',
                                'Check-in_rating', 'Value_rating'], axis=0, how='any')
         return df
@@ -28,7 +28,6 @@ def clean_tabular_data(df):
     def set_default_feature_values(df):
         df[['guests', 'beds', 'bathrooms', 'bedrooms']] = df[['guests', 'beds', 'bathrooms', 'bedrooms']].fillna(value=1)
         return df
-    
 
     df = remove_rows_with_missing_ratings(df)
     df = combine_description_strings(df)
