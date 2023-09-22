@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn import linear_model
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import make_pipeline
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.linear_model import SGDRegressor
@@ -17,8 +17,8 @@ import typing
 df = pd.read_csv("./airbnb-property-listings/tabular_data/clean_tabular_data.csv")
 features, labels = load_airbnb(df, label="Price_Night", numeric_only=True)
 
-print(features.columns)
-print(labels)
+#print(features.columns)
+#print(labels)
 
 # Rescale the features
 scaler = StandardScaler()
@@ -47,7 +47,7 @@ print('r2 = ', r2)
 # import typing
 
 
-def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, grid: dict, X_train, X_validation, X_test,
+def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict, X_train, X_validation, X_test,
                                                  y_train, y_validation, y_test):
     """
         The function should take in as arguments:
@@ -64,8 +64,8 @@ def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, grid: dic
     """
     best_hyperparams, best_loss = None, np.inf
 
-    def grid_search(hyperparameters: typing.Dict[str, typing.Iterable]):
-        keys, values = zip(*hyperparameters.items())
+    def grid_search(parameters_grid: typing.Dict[str, typing.Iterable]):
+        keys, values = zip(*parameters_grid.items())
         yield from (dict(zip(keys, v)) for v in itertools.product(*values))
 
     for hyperparams in grid_search(grid):
@@ -88,10 +88,25 @@ def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, grid: dic
     return model_performance
 
 
-grid = {"max_iter": [100, 1000, 10000],
+parameters_grid = {"max_iter": [100, 1000, 10000],
    # "degree": [1, 2, 3, 4, 5],
     "alpha": [0.1, 0.01, 0.001, 0.0001],
     "l1": [1, 0.7, 0.5, 0.2, 0]}
 
-#model_performance = custom_tune_regression_model_hyperparameters(grid=grid)
-#print(model_performance)
+# TO DO: complete this bit here
+def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict, X_train, X_validation, X_test,
+                                                 y_train, y_validation, y_test):
+    grid_search = GridSearchCV(mode_class_obj, parameters_grid)
+    grid_search.fit(X_train, y_train)
+
+# Get the best hyperparameters and the best model
+    best_hyperparams = grid_search.best_params_
+    best_model = grid_search.best_estimator_
+
+# Train the best model on the entire dataset or perform further evaluation
+    best_model.fit(X_test, y_test)
+    y_pred = best_model.predict(y_test)
+    test_loss = mean_squared_error(y_test, y_pred)
+    model_performance = {"best hyperparameters": best_hyperparams, "validation_RMSE": test_loss}
+
+    return model_performance
