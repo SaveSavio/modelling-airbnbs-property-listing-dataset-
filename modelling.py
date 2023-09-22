@@ -1,3 +1,5 @@
+import joblib
+import json
 import numpy as np
 import pandas as pd
 from sklearn import linear_model
@@ -110,3 +112,13 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     model_performance = {"best hyperparameters": best_hyperparams, "validation_RMSE": test_loss}
 
     return model_performance
+
+def save_model(model, model_filename, folder_path, model_performance):
+    full_model_path = folder_path + model_filename
+    joblib.dump(model, full_model_path)
+    full_performance_path = full_model_path + '.json'
+
+# Write the dictionary to the JSON file
+    with open(full_performance_path, "w") as json_file:
+      json.dump(model_performance, json_file)
+    
