@@ -1,13 +1,14 @@
+import itertools
 import joblib
 import json
 import numpy as np
 import pandas as pd
+import typing
 from sklearn import linear_model
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import make_pipeline
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.linear_model import SGDRegressor
-# TO DO: consider if feature scaling is necessary
 from sklearn.preprocessing import StandardScaler
 from tabular_data import load_airbnb
 from typing import Type
@@ -26,13 +27,14 @@ features, labels = load_airbnb(df, label="Price_Night", numeric_only=True)
 scaler = StandardScaler()
 scaled_features = scaler.fit_transform(features) # Fit and transform the data
 
+# split in train, validation, test sets
 X_train, X_test, y_train, y_test = train_test_split(
     scaled_features, labels, test_size=0.3)
 
 X_validation, X_test, y_validation, y_test =train_test_split(
     X_test, y_test, test_size=0.5)
 
-print(f'The number of training examples is {X_train.shape[0]}\n The number of labels is {X_train.shape[1]}')
+# print(f'The number of training examples is {X_train.shape[0]}\n The number of labels is {X_train.shape[1]}')
 
 # create a linear regression model using sklear SGDRegressor
 sgd_regressor = SGDRegressor(max_iter=10^5, random_state=1)
@@ -45,24 +47,20 @@ print('RMSE = ', np.sqrt(mse))
 r2 = r2_score(y_test, y_pred)
 print('r2 = ', r2)
 
-# import itertools
-# import typing
-
 
 def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict, X_train, X_validation, X_test,
                                                  y_train, y_validation, y_test):
     """
-        The function should take in as arguments:
+        A function designed to tune the regression model hyperparameters.
+        Implemented explicitely, i.e. without employing sklearn GridSearchCV
+        Paremeters:
             - The model class
-            - The training, validation, and test sets
             - A dictionary of hyperparameter names mapping to a list of values to be tried
-        It should return the best model, a dictionary of its best hyperparameter values, and a dictionary of its performance metrics.
-
-    The dictionary of performance metrics should include a key called "validation_RMSE",
-    for the RMSE on the validation set, which is what you should use to select the best model.
-    Make sure that this function is general enough that it can be applied to other models.
-    Note that the function should take in a model class, not an instance of that class, 
-    so that it can initialise that class with the hyperparameters provided.
+            - The training, validation, and test sets
+        Returns:
+            - the best model
+            - a dictionary of its best hyperparameter values
+            - a dictionary of its performance metrics.
     """
     best_hyperparams, best_loss = None, np.inf
 
@@ -95,7 +93,7 @@ parameters_grid = {"max_iter": [100, 1000, 10000],
     "alpha": [0.1, 0.01, 0.001, 0.0001],
     "l1": [1, 0.7, 0.5, 0.2, 0]}
 
-# TO DO: complete this bit here
+# TO DO: complete this bit here, validation dataset might not be needed
 def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict, X_train, X_validation, X_test,
                                                  y_train, y_validation, y_test):
     grid_search = GridSearchCV(mode_class_obj, parameters_grid)
@@ -122,3 +120,10 @@ def save_model(model, model_filename, folder_path, model_performance):
     with open(full_performance_path, "w") as json_file:
       json.dump(model_performance, json_file)
     
+def evaluate_all_models():
+    pass
+
+
+if __name__ == "__main__":
+    evaluate_all_models()
+    pass

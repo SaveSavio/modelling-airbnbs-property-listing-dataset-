@@ -1,3 +1,5 @@
+import pandas as pd
+
 def clean_tabular_data(df):
     """
         Main Function to clean the Airbnb dataset before analysis
@@ -52,7 +54,6 @@ def load_airbnb(df, label="label", numeric_only=False):
     return (features, labels)
 
 if __name__ == "__main__":
-    import pandas as pd
     df = pd.read_csv("./airbnb-property-listings/tabular_data/listing.csv")
     df_clean = clean_tabular_data(df)
     df_clean.to_csv("./airbnb-property-listings/tabular_data/clean_tabular_data.csv")
