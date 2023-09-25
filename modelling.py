@@ -38,10 +38,10 @@ sgd_regressor.fit(X_train, y_train)
 y_pred = sgd_regressor.predict(X_test)
 
 mse = mean_squared_error(y_test, y_pred)
-print('RMSE = ', np.sqrt(mse))
+#print('RMSE = ', np.sqrt(mse))
 
 r2 = r2_score(y_test, y_pred)
-print('r2 = ', r2)
+#print('r2 = ', r2)
 
 
 def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
@@ -130,32 +130,39 @@ def save_model(model, model_filename, folder_path, model_performance):
     with open(full_performance_path, "w") as json_file:
       json.dump(model_performance, json_file)
     
-def evaluate_all_models():
+
+def evaluate_all_models(mode_class_obj , parameters_grid):
     # decision trees, random forests, and gradient boosting
     # It's extremely important to apply your tune_regression_model_hyperparameters function
     # to each of these to tune their hyperparameters before evaluating them
     # Save the model, hyperparameters, and metrics in a folder named after the model class.
     # For example, save your best decision tree in a folder called models/regression/decision_tree.
-    sgd = SGDRegressor()
-    #rand_forest = RandomForestRegressor()
-    #grad_boost = GradientBoostingRegressor()
-    
-    grid_sdg = {"max_iter": [100, 1000, 10000],
-    "alpha": [0.1, 0.01, 0.001, 0.0001],
-    "l1": [1, 0.7, 0.5, 0.2, 0]}
-    
-    #grid_rand_forest = {}
-    #grid_rand_forest
-    pass
+    # rand_forest = RandomForestRegressor()
+    # grad_boost = GradientBoostingRegressor()
+    for index in enumerate(model_list):
+        tune_regression_model_hyperparameters(model_list[index], parameters_grid[index])
+
 
 
 if __name__ == "__main__":
-    evaluate_all_models()
-    pass
-
-
-
-parameters_grid = {"max_iter": [100, 1000, 10000],
-   # "degree": [1, 2, 3, 4, 5],
-    "alpha": [0.1, 0.01, 0.001, 0.0001],
-    "l1": [1, 0.7, 0.5, 0.2, 0]}
+    model_list = [SGDRegressor, RandomForestRegressor, GradientBoostingRegressor]
+    parameter_grid_list = [
+        {'alpha': [0.0001, 0.001, 0.01, 0.1],
+        'penalty': ['l2', 'l1', 'elasticnet'],
+        'loss': ['squared_loss', 'huber', 'epsilon_insensitive'],
+        'max_iter': [1000, 2000, 3000]}, 
+        {
+        'n_estimators': [10, 50, 100],
+        'max_depth': [None, 10, 20, 30],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4]
+        },
+        {
+        'n_estimators': [50, 100, 200],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'max_depth': [3, 4, 5],
+        'min_samples_split': [2, 3, 4],
+        'min_samples_leaf': [1, 2, 4]
+        }
+        ]
+    evaluate_all_models(model_list, parameter_grid_list)
