@@ -2,6 +2,7 @@ import itertools
 import joblib
 import json
 import numpy as np
+import os
 import pandas as pd
 import typing
 # from sklearn import linear_model
@@ -109,9 +110,13 @@ def save_model(model, model_filename, folder_path, model_performance):
             - dictionary containing the summary of the model perfomance on the dataset
     """
     full_model_path = folder_path + model_filename
+
+    if os.path.isdir(folder_path) == False:
+        os.mkdir(folder_path)
+    
     joblib.dump(model, full_model_path)
     print(f"Model saved to {model_filename}")
-
+        
     # Write the dictionary to the JSON file
     full_performance_path = full_model_path + '.json'
     with open(full_performance_path, "w") as json_file:
@@ -127,8 +132,11 @@ def evaluate_all_models(model_list , parameter_grid_list, X_train, X_test, y_tra
     # rand_forest = RandomForestRegressor()
     # grad_boost = GradientBoostingRegressor()
     for index, model in enumerate(model_list):
-        print(model, parameter_grid_list)
-        tune_regression_model_hyperparameters(model, parameter_grid_list[index], X_train, X_test, y_train, y_test)
+        print(model, parameter_grid_list[index])
+        model_performance = tune_regression_model_hyperparameters(model, parameter_grid_list[index],
+                                                                  X_train, X_test, y_train, y_test)
+        save_model(model, model_filename='best_'+model.__name__, folder_path='models/regression/'+model.__name__+'/',
+                   model_performance=model_performance)
 
 
 
@@ -145,6 +153,7 @@ if __name__ == "__main__":
     X_validation, X_test, y_validation, y_test = train_test_split(X_test, y_test, test_size=0.5)
 
     model_list = [SGDRegressor, RandomForestRegressor, GradientBoostingRegressor]
+    
     parameter_grid_list = [
         {'alpha': [0.0001, 0.001, 0.01, 0.1],
         'penalty': ['l2', 'l1', 'elasticnet'],
@@ -152,38 +161,25 @@ if __name__ == "__main__":
         'max_iter': [10**4, 10**5, 10**6]}, 
         {
         'n_estimators': [10, 50, 100],
-        'learning_rate': [0.01, 0.1, 0.2],
         'max_depth': [None, 10, 20, 30],
         'min_samples_split': [2, 5, 10],
         'min_samples_leaf': [1, 2, 4]},
         {
         'n_estimators': [50, 100, 200],
         'learning_rate': [0.01, 0.1, 0.2],
-         'max_depth': [None, 10, 20, 30],
+         'max_depth': [10, 20, 30],
          'min_samples_split': [2, 3, 4],
          'min_samples_leaf': [1, 2, 4]
          }
         ]
-
-    evaluate_all_models(model_list, parameter_grid_list, X_train, X_test, y_train, y_test)
-
-    # model_list = [SGDRegressor, RandomForestRegressor, GradientBoostingRegressor]
+    
+    # model_list = [SGDRegressor]
+    
     # parameter_grid_list = [
     #     {'alpha': [0.0001, 0.001, 0.01, 0.1],
     #     'penalty': ['l2', 'l1', 'elasticnet'],
-    #     'loss': ['squared_loss', 'huber', 'epsilon_insensitive'],
-    #     'max_iter': [1000, 2000, 3000]}, 
-    #     {
-    #     'n_estimators': [10, 50, 100],
-    #     'max_depth': [None, 10, 20, 30],
-    #     'min_samples_split': [2, 5, 10],
-    #     'min_samples_leaf': [1, 2, 4]
-    #     },
-    #     {
-    #     'n_estimators': [50, 100, 200],
-    #     'learning_rate': [0.01, 0.1, 0.2],
-    #     'max_depth': [3, 4, 5],
-    #     'min_samples_split': [2, 3, 4],
-    #     'min_samples_leaf': [1, 2, 4]
-    #     }
+    #     'loss': ['squared_error', 'huber', 'epsilon_insensitive'],
+    #     'max_iter': [10**4, 10**5, 10**6]}
     #     ]
+
+    evaluate_all_models(model_list, parameter_grid_list, X_train, X_test, y_train, y_test)
