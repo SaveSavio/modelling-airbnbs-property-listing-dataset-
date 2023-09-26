@@ -14,34 +14,20 @@ from sklearn.preprocessing import StandardScaler
 from tabular_data import load_airbnb
 from typing import Type
 
-# load the previously cleaned data
-df = pd.read_csv("./airbnb-property-listings/tabular_data/clean_tabular_data.csv")
-# select labels and features
-features, labels = load_airbnb(df, label="Price_Night", numeric_only=True)
 
-# print(features.columns)
-# print(labels)
 
-# rescale the features
-scaler = StandardScaler()
-scaled_features = scaler.fit_transform(features) # Fit and transform the data
+# print(f'The number of training examples is {X_train.shape[0]}\n The number of labels is {X_train.shape[1]}')
 
-# split in train, validation, test sets
-X_train, X_test, y_train, y_test = train_test_split(scaled_features, labels, test_size=0.3)
-X_validation, X_test, y_validation, y_test =train_test_split(X_test, y_test, test_size=0.5)
+# # linear regression model using sklearn SGDRegressor
+# sgd_regressor = SGDRegressor(max_iter=10^5, random_state=1)
+# sgd_regressor.fit(X_train, y_train)
+# y_pred = sgd_regressor.predict(X_test)
 
-print(f'The number of training examples is {X_train.shape[0]}\n The number of labels is {X_train.shape[1]}')
+# mse = mean_squared_error(y_test, y_pred)
+# #print('RMSE = ', np.sqrt(mse))
 
-# linear regression model using sklearn SGDRegressor
-sgd_regressor = SGDRegressor(max_iter=10^5, random_state=1)
-sgd_regressor.fit(X_train, y_train)
-y_pred = sgd_regressor.predict(X_test)
-
-mse = mean_squared_error(y_test, y_pred)
-#print('RMSE = ', np.sqrt(mse))
-
-r2 = r2_score(y_test, y_pred)
-#print('r2 = ', r2)
+# r2 = r2_score(y_test, y_pred)
+# #print('r2 = ', r2)
 
 
 def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
@@ -85,7 +71,7 @@ def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, parameter
 
 # TO DO: complete this bit here, validation dataset might not be needed
 def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
-    X_train, X_validation, X_test, y_train, y_validation, y_test):
+    X_train, X_test, y_train, y_test):
     """
         A function designed to tune the regression model hyperparameters. Employs sklearn GridSearchCV
         Paremeters:
@@ -98,18 +84,19 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
             - a dictionary of its performance metrics.
     """
 
-    grid_search = GridSearchCV(mode_class_obj, parameters_grid)
+    grid_search = GridSearchCV(mode_class_obj(random_state = 1), parameters_grid)
     grid_search.fit(X_train, y_train)
 
     # Get the best hyperparameters and the best model
     best_hyperparams = grid_search.best_params_
     best_model = grid_search.best_estimator_
 
-    # Train the best model on the entire dataset or perform further evaluation
+    # Train the best model on the test dataset and evaluate performance
     best_model.fit(X_test, y_test)
-    y_pred = best_model.predict(y_test)
+    y_pred = best_model.predict(X_test)
     test_loss = mean_squared_error(y_test, y_pred)
     model_performance = {"best hyperparameters": best_hyperparams, "validation_RMSE": test_loss}
+    print(model_performance)
     return model_performance
 
 def save_model(model, model_filename, folder_path, model_performance):
@@ -131,7 +118,7 @@ def save_model(model, model_filename, folder_path, model_performance):
       json.dump(model_performance, json_file)
     
 
-def evaluate_all_models(mode_class_obj , parameters_grid):
+def evaluate_all_models(model_list , parameter_grid_list, X_train, X_test, y_train, y_test):
     # decision trees, random forests, and gradient boosting
     # It's extremely important to apply your tune_regression_model_hyperparameters function
     # to each of these to tune their hyperparameters before evaluating them
@@ -139,30 +126,64 @@ def evaluate_all_models(mode_class_obj , parameters_grid):
     # For example, save your best decision tree in a folder called models/regression/decision_tree.
     # rand_forest = RandomForestRegressor()
     # grad_boost = GradientBoostingRegressor()
-    for index in enumerate(model_list):
-        tune_regression_model_hyperparameters(model_list[index], parameters_grid[index])
+    for index, model in enumerate(model_list):
+        print(model, parameter_grid_list)
+        tune_regression_model_hyperparameters(model, parameter_grid_list[index], X_train, X_test, y_train, y_test)
 
 
 
 if __name__ == "__main__":
+    # load the previously cleaned data
+    df = pd.read_csv("./airbnb-property-listings/tabular_data/clean_tabular_data.csv")
+    # select labels and features
+    features, labels = load_airbnb(df, label="Price_Night", numeric_only=True)
+    # rescale the features
+    scaler = StandardScaler()
+    scaled_features = scaler.fit_transform(features) # Fit and transform the data
+    # split in train, validation, test sets
+    X_train, X_test, y_train, y_test = train_test_split(scaled_features, labels, test_size=0.3)
+    X_validation, X_test, y_validation, y_test = train_test_split(X_test, y_test, test_size=0.5)
+
     model_list = [SGDRegressor, RandomForestRegressor, GradientBoostingRegressor]
     parameter_grid_list = [
         {'alpha': [0.0001, 0.001, 0.01, 0.1],
         'penalty': ['l2', 'l1', 'elasticnet'],
-        'loss': ['squared_loss', 'huber', 'epsilon_insensitive'],
-        'max_iter': [1000, 2000, 3000]}, 
+        'loss': ['squared_error', 'huber', 'epsilon_insensitive'],
+        'max_iter': [10**4, 10**5, 10**6]}, 
         {
         'n_estimators': [10, 50, 100],
+        'learning_rate': [0.01, 0.1, 0.2],
         'max_depth': [None, 10, 20, 30],
         'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4]
-        },
+        'min_samples_leaf': [1, 2, 4]},
         {
         'n_estimators': [50, 100, 200],
         'learning_rate': [0.01, 0.1, 0.2],
-        'max_depth': [3, 4, 5],
-        'min_samples_split': [2, 3, 4],
-        'min_samples_leaf': [1, 2, 4]
-        }
+         'max_depth': [None, 10, 20, 30],
+         'min_samples_split': [2, 3, 4],
+         'min_samples_leaf': [1, 2, 4]
+         }
         ]
-    evaluate_all_models(model_list, parameter_grid_list)
+
+    evaluate_all_models(model_list, parameter_grid_list, X_train, X_test, y_train, y_test)
+
+    # model_list = [SGDRegressor, RandomForestRegressor, GradientBoostingRegressor]
+    # parameter_grid_list = [
+    #     {'alpha': [0.0001, 0.001, 0.01, 0.1],
+    #     'penalty': ['l2', 'l1', 'elasticnet'],
+    #     'loss': ['squared_loss', 'huber', 'epsilon_insensitive'],
+    #     'max_iter': [1000, 2000, 3000]}, 
+    #     {
+    #     'n_estimators': [10, 50, 100],
+    #     'max_depth': [None, 10, 20, 30],
+    #     'min_samples_split': [2, 5, 10],
+    #     'min_samples_leaf': [1, 2, 4]
+    #     },
+    #     {
+    #     'n_estimators': [50, 100, 200],
+    #     'learning_rate': [0.01, 0.1, 0.2],
+    #     'max_depth': [3, 4, 5],
+    #     'min_samples_split': [2, 3, 4],
+    #     'min_samples_leaf': [1, 2, 4]
+    #     }
+    #     ]
