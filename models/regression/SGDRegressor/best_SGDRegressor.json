@@ -1,1 +1,1 @@
-{"best hyperparameters": {"alpha": 0.1, "loss": "squared_error", "max_iter": 10000, "penalty": "l2"}, "validation_RMSE": 8852.125267019428}
+{"best hyperparameters": {"alpha": 0.1, "loss": "squared_error", "max_iter": 10000, "penalty": "elasticnet"}, "validation_RMSE": 13312.237256976183}
