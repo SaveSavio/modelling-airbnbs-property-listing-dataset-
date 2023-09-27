@@ -1,3 +1,4 @@
+import glob
 import itertools
 import joblib
 import json
@@ -95,9 +96,9 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     # Train the best model on the test dataset and evaluate performance
     best_model.fit(X_test, y_test)
     y_pred = best_model.predict(X_test)
-    rmse = mean_squared_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
-    mae = mean_absolute_error(y_test, y_pred)
+    rmse = mean_squared_error(y_test, y_pred) # this is the test loss
+    r2 = r2_score(y_test, y_pred) # additional metric
+    mae = mean_absolute_error(y_test, y_pred)  # additional metric
     test_loss = rmse
     model_performance = {"best hyperparameters": best_hyperparams, "validation_RMSE": test_loss, "R^2": r2, "MAE": mae}
     print(model_performance)
@@ -141,7 +142,7 @@ def evaluate_all_models(model_list , parameter_grid_list, X_train, X_test, y_tra
         save_model(model, model_filename='best_'+model.__name__, folder_path='models/regression/'+model.__name__+'/',
                    model_performance=model_performance)
 
-def find_best_model(folder_path, evaluation_metric):
+def find_best_model(search_directory = './models/regression', evaluation_metric='rmse'):
     """
         Finds the best model amongst those in a folder path by comparing their "evaluation metric"
         Returns:
@@ -149,7 +150,23 @@ def find_best_model(folder_path, evaluation_metric):
             - a dictionary of its hyperparameters
             - a dictionary of its performance metrics.
     """
-    pass
+    # Define the file extension you want to search for
+    file_extension = '*.json'
+
+    # Use glob to find all JSON files in the specified directory and its subdirectories
+    json_files = glob.glob(os.path.join(search_directory, '**', file_extension), recursive=True)
+
+    # Print the list of JSON files found
+    min_rmse = np.inf
+    for json_file in json_files:
+        print(json_file)
+        with open(json_file, "r") as json_file:
+            data = json.load(json_file)
+            if data['validation_RMSE'] < min_rmse:
+                min_rmse = data['validation_RMSE']
+                model = json_file
+                print(json_file)
+        return model
 
 if __name__ == "__main__":
     # load the previously cleaned data
