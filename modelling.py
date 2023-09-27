@@ -9,7 +9,7 @@ import typing
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import make_pipeline
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from sklearn.linear_model import SGDRegressor
 from sklearn.preprocessing import StandardScaler
 from tabular_data import load_airbnb
@@ -95,8 +95,11 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     # Train the best model on the test dataset and evaluate performance
     best_model.fit(X_test, y_test)
     y_pred = best_model.predict(X_test)
-    test_loss = mean_squared_error(y_test, y_pred)
-    model_performance = {"best hyperparameters": best_hyperparams, "validation_RMSE": test_loss}
+    rmse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    mae = mean_absolute_error(y_test, y_pred)
+    test_loss = rmse
+    model_performance = {"best hyperparameters": best_hyperparams, "validation_RMSE": test_loss, "R^2": r2, "MAE": mae}
     print(model_performance)
     return model_performance
 
