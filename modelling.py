@@ -104,6 +104,7 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     print(model_performance)
     return model_performance
 
+
 def save_model(model, model_filename, folder_path, model_performance):
     """
         Saves a regression model in the desired folder path, alongside its performance indicators
@@ -118,7 +119,7 @@ def save_model(model, model_filename, folder_path, model_performance):
     if os.path.isdir(folder_path) == False:
         os.mkdir(folder_path)
     
-    joblib.dump(model, full_model_path)
+    joblib.dump(model, full_model_path + '.pkl')
     print(f"Model saved to {model_filename}")
         
     # Write the dictionary to the JSON file
@@ -141,6 +142,7 @@ def evaluate_all_models(model_list , parameter_grid_list, X_train, X_test, y_tra
                                                                   X_train, X_test, y_train, y_test)
         save_model(model, model_filename='best_'+model.__name__, folder_path='models/regression/'+model.__name__+'/',
                    model_performance=model_performance)
+
 
 def find_best_model(search_directory = './models/regression', evaluation_metric='rmse'):
     """
@@ -166,7 +168,10 @@ def find_best_model(search_directory = './models/regression', evaluation_metric=
                 min_rmse = data['validation_RMSE']
                 model = json_file
                 print(json_file)
-        return model
+    #model = your_trained_model  # Replace with your trained scikit-learn model
+    #joblib.dump(model, 'model.pkl') 
+    #    return model
+
 
 if __name__ == "__main__":
     # load the previously cleaned data
