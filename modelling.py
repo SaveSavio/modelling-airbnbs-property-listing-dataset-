@@ -70,7 +70,7 @@ def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, parameter
     return model_performance
 
 
-# TO DO: complete this bit here, validation dataset might not be needed
+# TO DO: consider other metrics, such as MAE and/or R^2
 def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
     X_train, X_test, y_train, y_test):
     """
@@ -138,7 +138,15 @@ def evaluate_all_models(model_list , parameter_grid_list, X_train, X_test, y_tra
         save_model(model, model_filename='best_'+model.__name__, folder_path='models/regression/'+model.__name__+'/',
                    model_performance=model_performance)
 
-
+def find_best_model(folder_path, evaluation_metric):
+    """
+        Finds the best model amongst those in a folder path by comparing their "evaluation metric"
+        Returns:
+            - loaded model
+            - a dictionary of its hyperparameters
+            - a dictionary of its performance metrics.
+    """
+    pass
 
 if __name__ == "__main__":
     # load the previously cleaned data
@@ -173,13 +181,5 @@ if __name__ == "__main__":
          }
         ]
     
-    # model_list = [SGDRegressor]
-    
-    # parameter_grid_list = [
-    #     {'alpha': [0.0001, 0.001, 0.01, 0.1],
-    #     'penalty': ['l2', 'l1', 'elasticnet'],
-    #     'loss': ['squared_error', 'huber', 'epsilon_insensitive'],
-    #     'max_iter': [10**4, 10**5, 10**6]}
-    #     ]
-
     evaluate_all_models(model_list, parameter_grid_list, X_train, X_test, y_train, y_test)
+    # find_best_model()
