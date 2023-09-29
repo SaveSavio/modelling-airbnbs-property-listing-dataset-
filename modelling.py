@@ -5,6 +5,7 @@ import json
 import numpy as np
 import os
 import pandas as pd
+import pickle
 import typing
 # from sklearn import linear_model
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
@@ -158,19 +159,20 @@ def find_best_model(search_directory = './models/regression', evaluation_metric=
     # Use glob to find all JSON files in the specified directory and its subdirectories
     json_files = glob.glob(os.path.join(search_directory, '**', file_extension), recursive=True)
 
-    # Print the list of JSON files found
     min_rmse = np.inf
     for json_file in json_files:
-        print(json_file)
-        with open(json_file, "r") as json_file:
-            data = json.load(json_file)
-            if data['validation_RMSE'] < min_rmse:
-                min_rmse = data['validation_RMSE']
-                model = json_file
-                print(json_file)
-    #model = your_trained_model  # Replace with your trained scikit-learn model
-    #joblib.dump(model, 'model.pkl') 
-    #    return model
+            with open(json_file, "r") as file:
+                data = json.load(file)
+                if data['validation_RMSE'] < min_rmse:
+                    min_rmse = data['validation_RMSE']
+                    best_model = json_file[:-4] + 'pkl'
+                    best_performance = data.get('validation_RMSE')
+                    best_hyperparameters = data.get('best hyperparameters')
+
+    best_model = joblib.load(best_model)
+    print("Best model loaded: ", best_model, "\nValidation RMSE: ", best_performance, 
+        "\nHyper-parameters: ", best_hyperparameters)
+    return best_model, best_performance, best_hyperparameters
 
 
 if __name__ == "__main__":
@@ -207,4 +209,4 @@ if __name__ == "__main__":
         ]
     
     evaluate_all_models(model_list, parameter_grid_list, X_train, X_test, y_train, y_test)
-    # find_best_model()
+    best_model, best_performance, best_hyperparams = find_best_model()
