@@ -142,8 +142,8 @@ if __name__ == "__main__":
         'penalty': ['none'],  # Regularization type
         }
 
-    tune_regression_model_hyperparameters(model_list, param_grid,
-    model_info = X_train, X_test, y_train, y_test, random_state = 46)
+    model_info = tune_regression_model_hyperparameters(model_list, param_grid,
+        X_train, X_test, y_train, y_test, random_state = 46)
     print(model_info)
 
     # parameter_grid_list = [

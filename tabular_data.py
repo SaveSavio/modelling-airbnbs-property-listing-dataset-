@@ -65,11 +65,11 @@ def load_airbnb(df, label="label", numeric_only=False):
             A tuple containing model features (numeric only)
             A tuple containing the model label
     """
-    # remove all non-numerical features from the dataset
-    if numeric_only == True:
-        df = df.select_dtypes(include='number')
     labels = df[label]
     features = df.drop(columns=[label, 'Unnamed: 0', 'Unnamed: 19'])
+    # remove all non-numerical features from the features
+    if numeric_only == True:
+        features = features.select_dtypes(include='number')
     return (features, labels)
 
 if __name__ == "__main__":
