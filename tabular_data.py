@@ -2,24 +2,33 @@ import pandas as pd
 
 def clean_tabular_data(df):
     """
-        Main Function to clean the Airbnb dataset before analysis
+        Main Function to clean the Airbnb dataset before analysis.
+        It calls the nested functions on a pandas dataframes
+        Parameters:
+            a pandas dataframe
+        Returns:
+            a "clean" pandas dataframe
     """
-    # TO DO: clarify if the 3 functions below should be indented or not
     def remove_rows_with_missing_ratings(df):
         """
             Removes the rows with missing values in each of the rating columns.
             Parameters:
                 a pandas dataframe
             Returns:
-                the same type
+                a pandas dataframe
         """
-        # TO DO: remove line below once function is tested
-        # df = df[df['Cleanliness_rating'].notna()]
         df = df.dropna(subset=['Cleanliness_rating', 'Accuracy_rating', 'Communication_rating', 'Location_rating',
                                'Check-in_rating', 'Value_rating'], axis=0, how='any')
         return df
 
     def combine_description_strings(df):
+        """
+            Combines the list items into the same string
+            Parameters:
+                a pandas dataframe
+            Returns:
+                a pandas dataframe
+        """
         df['Description'] = df['Description'].str.replace("'About this space', ", '')
         df['Description'] = df['Description'].str.replace(" 'The space', 'The space\n", '')
         df['Description'] = df['Description'].str.replace(r'\n\n', ' ')
@@ -28,6 +37,14 @@ def clean_tabular_data(df):
         return df
 
     def set_default_feature_values(df):
+        """
+        Replaces the empty rows in the colums "guests", "beds", "bathrooms", "bedrooms"
+        with a default value equal to 1
+            Parameters:
+                a pandas dataframe
+            Returns:
+                a pandas dataframe
+        """
         df[['guests', 'beds', 'bathrooms', 'bedrooms']] = df[['guests', 'beds', 'bathrooms', 'bedrooms']].fillna(value=1)
         return df
 
@@ -37,14 +54,16 @@ def clean_tabular_data(df):
 
     return df
 
+
 def load_airbnb(df, label="label", numeric_only=False):
     """
-        Selects numberical data only and returns two dataframes, splitting features from labels.
+        1) Selects numerical data only and returns two dataframes
+        2) Splits features and labels.
         Parameters:
             A pandas dataframe; the name of the label
         Returns:
             A tuple containing model features (numeric only)
-            A tuple containing the model labels
+            A tuple containing the model label
     """
     # remove all non-numerical features from the dataset
     if numeric_only == True:
