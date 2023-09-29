@@ -5,12 +5,9 @@ import json
 import numpy as np
 import os
 import pandas as pd
-import pickle
 import typing
-# from sklearn import linear_model
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.pipeline import make_pipeline
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from sklearn.linear_model import SGDRegressor
 from sklearn.preprocessing import StandardScaler
@@ -18,25 +15,10 @@ from tabular_data import load_airbnb
 from typing import Type
 
 
-
-# print(f'The number of training examples is {X_train.shape[0]}\n The number of labels is {X_train.shape[1]}')
-
-# # linear regression model using sklearn SGDRegressor
-# sgd_regressor = SGDRegressor(max_iter=10^5, random_state=1)
-# sgd_regressor.fit(X_train, y_train)
-# y_pred = sgd_regressor.predict(X_test)
-
-# mse = mean_squared_error(y_test, y_pred)
-# #print('RMSE = ', np.sqrt(mse))
-
-# r2 = r2_score(y_test, y_pred)
-# #print('r2 = ', r2)
-
-
 def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
         X_train, X_validation, X_test, y_train, y_validation, y_test):
     """
-        A function designed to tune the regression model hyperparameters.
+        Tunes the regression model hyperparameters.
         Implemented explicitely, i.e. without employing sklearn GridSearchCV
         Paremeters:
             - The model class
@@ -48,6 +30,7 @@ def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, parameter
             - a dictionary of its performance metrics.
     """
 
+    # initialize parameters
     best_hyperparams, best_loss = None, np.inf
 
     def grid_search(parameters_grid: typing.Dict[str, typing.Iterable]):
@@ -72,11 +55,10 @@ def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, parameter
     return model_performance
 
 
-# TO DO: consider other metrics, such as MAE and/or R^2
 def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
-    X_train, X_test, y_train, y_test):
+    X_train, X_test, y_train, y_test, random_state = 46):
     """
-        A function designed to tune the regression model hyperparameters. Employs sklearn GridSearchCV
+        A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
             - The model class
             - A dictionary of hyperparameter names mapping to a list of values to be tried
@@ -87,7 +69,7 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
             - a dictionary of its performance metrics.
     """
 
-    grid_search = GridSearchCV(mode_class_obj(random_state = 1), parameters_grid)
+    grid_search = GridSearchCV(mode_class_obj(random_state = random_state), parameters_grid)
     grid_search.fit(X_train, y_train)
 
     # Get the best hyperparameters and the best model
@@ -97,22 +79,23 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     # Train the best model on the test dataset and evaluate performance
     best_model.fit(X_test, y_test)
     y_pred = best_model.predict(X_test)
-    rmse = mean_squared_error(y_test, y_pred) # this is the test loss
-    r2 = r2_score(y_test, y_pred) # additional metric
-    mae = mean_absolute_error(y_test, y_pred)  # additional metric
-    test_loss = rmse
-    model_performance = {"best hyperparameters": best_hyperparams, "validation_RMSE": test_loss, "R^2": r2, "MAE": mae}
-    print(model_performance)
-    return model_performance
+    # calculate Root Mean Square Error (test loss) and additional metrics
+    rmse = mean_squared_error(y_test, y_pred) 
+    r2 = r2_score(y_test, y_pred) 
+    mae = mean_absolute_error(y_test, y_pred)
+    # create a dictionary containing: best hyperparameters and performance metrics
+    model_info = {"best hyperparameters": best_hyperparams, "validation_RMSE": rmse, "R^2": r2, "MAE": mae}
+    print(model_info)
+    return model_info
 
 
-def save_model(model, model_filename, folder_path, model_performance):
+def save_model(model, model_filename: str, folder_path: str, model_info: dict):
     """
         Saves a regression model in the desired folder path, alongside its performance indicators
         Parameters:
             - model class
             - model filename 
-            - model path
+            - folder path
             - dictionary containing the summary of the model perfomance on the dataset
     """
     full_model_path = folder_path + model_filename
@@ -126,10 +109,10 @@ def save_model(model, model_filename, folder_path, model_performance):
     # Write the dictionary to the JSON file
     full_performance_path = full_model_path + '.json'
     with open(full_performance_path, "w") as json_file:
-      json.dump(model_performance, json_file)
+      json.dump(model_info, json_file)
     
 
-def evaluate_all_models(model_list , parameter_grid_list, X_train, X_test, y_train, y_test):
+def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X_test, y_train, y_test):
     # decision trees, random forests, and gradient boosting
     # It's extremely important to apply your tune_regression_model_hyperparameters function
     # to each of these to tune their hyperparameters before evaluating them
@@ -145,9 +128,9 @@ def evaluate_all_models(model_list , parameter_grid_list, X_train, X_test, y_tra
                    model_performance=model_performance)
 
 
-def find_best_model(search_directory = './models/regression', evaluation_metric='rmse'):
+def find_best_model(search_directory = './models/regression'):
     """
-        Finds the best model amongst those in a folder path by comparing their "evaluation metric"
+        Finds the best model amongst those in a folder path by comparing their rmse (evaluation metric)
         Returns:
             - loaded model
             - a dictionary of its hyperparameters
@@ -168,7 +151,8 @@ def find_best_model(search_directory = './models/regression', evaluation_metric=
                     best_model = json_file[:-4] + 'pkl'
                     best_performance = data.get('validation_RMSE')
                     best_hyperparameters = data.get('best hyperparameters')
-
+    
+    # loads the model
     best_model = joblib.load(best_model)
     print("Best model loaded: ", best_model, "\nValidation RMSE: ", best_performance, 
         "\nHyper-parameters: ", best_hyperparameters)
