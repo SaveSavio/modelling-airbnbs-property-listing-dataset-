@@ -8,14 +8,14 @@ import pandas as pd
 import typing
 #from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import precision_score, recall_score, accuracy_score, confusion_matrix
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from tabular_data import load_airbnb
 from typing import Type
 
 
-def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
+def tune_regression_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
     X_train, X_test, y_train, y_test, random_state = 46):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
@@ -29,7 +29,7 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
             - a dictionary of its performance metrics.
     """
 
-    grid_search = GridSearchCV(mode_class_obj(random_state = random_state), parameters_grid)
+    grid_search = GridSearchCV(model_class_obj(random_state = random_state), parameters_grid)
     grid_search.fit(X_train, y_train)
 
     # Get the best hyperparameters and the best model
@@ -39,14 +39,14 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     # Train the best model on the test dataset and evaluate performance
     best_model.fit(X_test, y_test)
     y_pred = best_model.predict(X_test)
-    # calculate Root Mean Square Error (test loss) and additional metrics
+    # calculate performance metrics
+    precision_score = precision_score(y_test, y_pred)
+    recall_score = recall_score(y_test, y_pred)
     accuracy = accuracy_score(y_test, y_pred)
-    print(f"Accuracy: {accuracy:.2f}")
-
-    # Display confusion matrix
     conf_matrix = confusion_matrix(y_test, y_pred)
-    print("Confusion Matrix:")
-    print(conf_matrix)
+
+    print(f"Accuracy: {accuracy:.2f}")
+    print("Confusion Matrix:\n", confusion_matrix)
 
     # create a dictionary containing: best hyperparameters and performance metrics
     model_info = {"best hyperparameters": best_hyperparams, "Accuracy": accuracy, "Confusion Matrix": conf_matrix}
@@ -136,10 +136,15 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test = train_test_split(scaled_features, labels, test_size=0.3)
     X_validation, X_test, y_validation, y_test = train_test_split(X_test, y_test, test_size=0.5)
 
-    model_list = [LogisticRegression]
+    model_list = LogisticRegression
     
     param_grid = {
-        'penalty': ['none'],  # Regularization type
+        'penalty': ['l1', 'l2', 'elasticnet'],  # Regularization type
+        'C': [0.001, 0.01, 0.1, 1.0, 10.0],           # Inverse of regularization strength
+        'solver': ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],  # Optimization algorithm
+        'max_iter': [10**3, 10**4, 10**5],                  # Maximum number of iterations
+        'multi_class': ['auto', 'ovr', 'multinomial'],  # Multiclass strategy
+        'class_weight': [None, 'balanced']
         }
 
     model_info = tune_regression_model_hyperparameters(model_list, param_grid,

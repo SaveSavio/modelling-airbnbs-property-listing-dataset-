@@ -15,7 +15,7 @@ from tabular_data import load_airbnb
 from typing import Type
 
 
-def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
+def custom_tune_regression_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
         X_train, X_validation, X_test, y_train, y_validation, y_test):
     """
         Tunes the regression model hyperparameters.
@@ -38,7 +38,7 @@ def custom_tune_regression_model_hyperparameters(mode_class_obj: Type, parameter
         yield from (dict(zip(keys, v)) for v in itertools.product(*values))
 
     for hyperparams in grid_search(parameters_grid):
-        model = mode_class_obj(**hyperparams)
+        model = model_class_obj(**hyperparams)
         model.fit(X_train, y_train)
 
     y_validation_pred = model.predict(X_validation)
