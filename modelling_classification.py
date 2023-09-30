@@ -15,7 +15,7 @@ from tabular_data import load_airbnb
 from typing import Type
 
 
-def tune_regression_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
+def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
     X_train, X_test, y_train, y_test, random_state = 46):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
@@ -29,7 +29,9 @@ def tune_regression_model_hyperparameters(model_class_obj: Type, parameters_grid
             - a dictionary of its performance metrics.
     """
 
-    grid_search = GridSearchCV(model_class_obj(random_state = random_state), parameters_grid)
+    grid_search = GridSearchCV(model_class_obj(random_state = random_state), param_grid=parameters_grid,
+                               scoring='accuracy', cv=5, n_jobs=-1)
+
     grid_search.fit(X_train, y_train)
 
     # Get the best hyperparameters and the best model
@@ -40,8 +42,8 @@ def tune_regression_model_hyperparameters(model_class_obj: Type, parameters_grid
     best_model.fit(X_test, y_test)
     y_pred = best_model.predict(X_test)
     # calculate performance metrics
-    precision_score = precision_score(y_test, y_pred)
-    recall_score = recall_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, average=None)
+    recall = recall_score(y_test, y_pred, average=None)
     accuracy = accuracy_score(y_test, y_pred)
     conf_matrix = confusion_matrix(y_test, y_pred)
 
@@ -49,7 +51,8 @@ def tune_regression_model_hyperparameters(model_class_obj: Type, parameters_grid
     print("Confusion Matrix:\n", confusion_matrix)
 
     # create a dictionary containing: best hyperparameters and performance metrics
-    model_info = {"best hyperparameters": best_hyperparams, "Accuracy": accuracy, "Confusion Matrix": conf_matrix}
+    model_info = {"best hyperparameters": best_hyperparams, "Precision": precision,
+                  "Recall": recall, "Accuracy": accuracy, "Confusion Matrix": conf_matrix}
     print(model_info)
     return model_info
 
@@ -138,16 +141,9 @@ if __name__ == "__main__":
 
     model_list = LogisticRegression
     
-    param_grid = {
-        'penalty': ['l1', 'l2', 'elasticnet'],  # Regularization type
-        'C': [0.001, 0.01, 0.1, 1.0, 10.0],           # Inverse of regularization strength
-        'solver': ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],  # Optimization algorithm
-        'max_iter': [10**3, 10**4, 10**5],                  # Maximum number of iterations
-        'multi_class': ['auto', 'ovr', 'multinomial'],  # Multiclass strategy
-        'class_weight': [None, 'balanced']
-        }
+    param_grid = {}
 
-    model_info = tune_regression_model_hyperparameters(model_list, param_grid,
+    model_info = tune_classification_model_hyperparameters(model_list, param_grid,
         X_train, X_test, y_train, y_test, random_state = 46)
     print(model_info)
 
