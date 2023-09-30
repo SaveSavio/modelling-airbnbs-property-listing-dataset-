@@ -125,7 +125,7 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
         model_performance = tune_regression_model_hyperparameters(model, parameter_grid_list[index],
                                                                   X_train, X_test, y_train, y_test)
         save_model(model, model_filename='best_'+model.__name__, folder_path='models/regression/'+model.__name__+'/',
-                   model_performance=model_performance)
+                   model_info=model_performance)
 
 
 def find_best_model(search_directory = './models/regression'):

@@ -1,0 +1,1 @@
+{"best hyperparameters": {"learning_rate": 0.01, "max_depth": 4, "n_estimators": 200, "subsample": 0.9}, "Precision": [0.9565217391304348, 1.0, 1.0, 1.0, 1.0], "Recall": [1.0, 1.0, 1.0, 0.967741935483871, 1.0], "Accuracy": 0.9925373134328358}
