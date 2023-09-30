@@ -47,13 +47,13 @@ def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_
     recall = recall_score(y_test, y_pred, average=None)
     accuracy = accuracy_score(y_test, y_pred)
     conf_matrix = confusion_matrix(y_test, y_pred)
-
-    print(f"Accuracy: {accuracy:.2f}")
-    print("Confusion Matrix:\n", confusion_matrix)
-
     # create a dictionary containing: best hyperparameters and performance metrics
     model_info = {"best hyperparameters": best_hyperparams, "Precision": precision,
                   "Recall": recall, "Accuracy": accuracy, "Confusion Matrix": conf_matrix}
+
+    #print(f"Accuracy: {accuracy:.2f}")
+    #print("Confusion Matrix:\n", conf_matrix)
+    print(model_class_obj)
     print(model_info)
     return model_info
 
@@ -91,13 +91,13 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
     # grad_boost = GradientBoostingRegressor()
     for index, model in enumerate(model_list):
         print(model, parameter_grid_list[index])
-        model_performance = tune_regression_model_hyperparameters(model, parameter_grid_list[index],
+        model_performance = tune_classification_model_hyperparameters(model, parameter_grid_list[index],
                                                                   X_train, X_test, y_train, y_test)
-        save_model(model, model_filename='best_'+model.__name__, folder_path='models/regression/'+model.__name__+'/',
+        save_model(model, model_filename='best_'+model.__name__, folder_path='models/classification/logistic_regression/'+model.__name__+'/',
                    model_performance=model_performance)
 
 
-def find_best_model(search_directory = './models/regression'):
+def find_best_model(search_directory = './models/classification/logistic_regression'):
     """
         Finds the best model amongst those in a folder path by comparing their rmse (evaluation metric)
         Returns:
