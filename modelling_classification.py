@@ -16,7 +16,8 @@ from typing import Type
 
 
 def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
-    X_train, X_test, y_train, y_test, random_state = 46):
+                                              X_train, X_test, y_train, y_test,
+                                              validation_accuracy="accuracy", random_state = 1):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
@@ -29,8 +30,8 @@ def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_
             - a dictionary of its performance metrics.
     """
 
-    grid_search = GridSearchCV(model_class_obj(random_state = random_state), param_grid=parameters_grid,
-                               scoring='accuracy', cv=5, n_jobs=-1)
+    grid_search = GridSearchCV(model_class_obj(random_state=random_state), param_grid=parameters_grid,
+                               scoring=validation_accuracy, cv=5, n_jobs=-1)
 
     grid_search.fit(X_train, y_train)
 
@@ -141,10 +142,12 @@ if __name__ == "__main__":
 
     model_list = LogisticRegression
     
-    param_grid = {}
+    param_grid = {'penalty': ['l2', 'l1', 'elasticnet', None],
+                  'max_iter': [10**2, 10**3, 10**4]}
 
     model_info = tune_classification_model_hyperparameters(model_list, param_grid,
-        X_train, X_test, y_train, y_test, random_state = 46)
+                                                           X_train, X_test, y_train, y_test,
+                                                           validation_accuracy="accuracy", random_state = 1)
     print(model_info)
 
     # parameter_grid_list = [
