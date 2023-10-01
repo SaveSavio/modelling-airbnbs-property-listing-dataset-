@@ -56,4 +56,11 @@ which, in turn:
 - Combines the list items into the same string
 - Replaces the empty rows in the colums "guests", "beds", "bathrooms", "bedrooms" with a default value equal to 1
 
-These functions are placed inside tabular_data.py that performs the cleaning if called and saves the clean data in clean_tabular_data.csv.
+These functions are placed inside <u>tabular_data.py</u>:<br> that, when called, performs the cleaning if called and saves the clean data in clean_tabular_data.csv.
+
+The function
+```python
+def load_airbnb(df, label="label", numeric_only=False):
+```
+splits the dataframe into features and labels in order to prepare it for Machine Learning.
+Furthermore, if required, can remove all non-numeric values from the dataset.
