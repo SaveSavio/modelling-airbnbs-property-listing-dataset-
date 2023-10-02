@@ -51,7 +51,7 @@ def remove_rows_with_missing_ratings(df)
 def combine_description_strings(df)
 def set_default_feature_values(df)
 ```
-which, in turn:
+The functions above, in turn:
 - Remove the rows with missing values in each of the rating columns
 - Combines the list items into the same string
 - Replaces the empty rows in the colums "guests", "beds", "bathrooms", "bedrooms" with a default value equal to 1
@@ -64,3 +64,44 @@ def load_airbnb(df, label="label", numeric_only=False):
 ```
 splits the dataframe into features and labels in order to prepare it for Machine Learning.
 Furthermore, if required, can remove all non-numeric values from the dataset.
+
+## Regression models
+<u>NOTE:</u>:<br>
+This framework works only for numerical variables. If categorical variables are to be used, one-hot-encoding should be implemented.
+
+The framework build in <u>modelling.py</u>:<br> allows to systematically compare the performance of regression models.
+
+The main function is
+```python
+def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
+    X_train, X_test, y_train, y_test, random_state = 1)
+```
+Which is designed to tune the regression model hyperparameters by using sklearn GridSearchCV.
+It takes the following paremeters:
+- The model class
+- A dictionary of hyperparameter names mapping to a list of values to be tried
+- The training, validation, and test sets
+and returns:
+- the best model
+- a dictionary of its best hyperparameter values
+- a dictionary of its performance metrics.
+
+The other functions in the file are:
+```python
+def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X_test, y_train, y_test):
+def save_model(model, model_filename: str, folder_path: str, model_info: dict):
+def find_best_model(search_directory = './models/regression'):
+```
+They respectively:
+- evaluate the models provided in a list, alongside a list of parameters grids (one for each model)
+- save the best model for each type (or model class, e.g. SGDRegressor, RandomForestRegressor etc)
+- find the best overall model (i.e. among all the types of models)
+
+def custom_tune_regression_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
+
+## Classification models
+The same framework as for the regression models, has been build for a classification type example.
+The file <u>modelling_classification.py</u>:<br> contains the same functions and architeture as the regression case, 
+but adapted to classification problems.
+
+

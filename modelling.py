@@ -56,7 +56,7 @@ def custom_tune_regression_model_hyperparameters(model_class_obj: Type, paramete
 
 
 def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
-    X_train, X_test, y_train, y_test, random_state = 46):
+    X_train, X_test, y_train, y_test, random_state = 1):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
