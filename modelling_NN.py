@@ -4,6 +4,8 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import torch
 from tabular_data import load_airbnb
 import torch.nn.functional as F
+from torch.utils.tensorboard import SummaryWriter
+import yaml
 
 
 class AirbnbNightlyPriceRegressionDataset(Dataset):
@@ -61,11 +63,14 @@ class LinearRegression(torch.nn.Module):
         return self.linear_layer(features)
 
 
-def train(model, epochs = 10): ## TODO: consider if we have to pass train_loader to it
+def train(model, epochs = 100): ## TODO: consider if we have to pass train_loader to it
     
     optimizer = torch.optim.Adam(params=model.parameters(), lr=0.001)
     # torch provides model parameters throught the .parameters() method
     # this is inherited from the torch class
+
+    writer = SummaryWriter()
+    batch_idx = 0 # initalize outside the epoch
 
     for epoch in range(epochs):
         for batch in train_loader:
@@ -81,13 +86,32 @@ def train(model, epochs = 10): ## TODO: consider if we have to pass train_loader
             optimizer.step()
             optimizer.zero_grad() # this is necessary because of the behaviour of .backward() not overwriting values
 
+            writer.add_scalar('loss', loss.item(), batch_idx) # cannot used the batch index because it resets every epoch
+            batch_idx += 1
+
+
+def get_nn_config(config_file_path='nn_config.yaml'):
+    """
+        Reads the neural network configuration from a YAML file and returns it as a dictionary.
+        
+        Parameters:
+            config_file_path (str): Path to the YAML configuration file.
+        Returns:
+            dict: A dictionary containing the configuration settings.
+    """
+    try:
+        with open(config_file_path, 'r') as config_file:
+            config = yaml.safe_load(config_file)
+        return config
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Configuration file '{config_file_path}' not found.")
+    except yaml.YAMLError as e:
+        raise ValueError(f"Error parsing the configuration file: {str(e)}")
+
 model = LinearRegression()
 
 if __name__ == "__main__":
     dataset = AirbnbNightlyPriceRegressionDataset()
     train_loader, val_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
-
-    #TODO: sort this out train_loader = DataLoader(data)
-    #print(data[10])
         
     train(model)
