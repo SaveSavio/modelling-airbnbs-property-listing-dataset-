@@ -122,10 +122,36 @@ def get_nn_config(config_file_path='nn_config.yaml'):
     except yaml.YAMLError as e:
         raise ValueError(f"Error parsing the configuration file: {str(e)}")
 
+# Adapt your function called save_model so that it detects whether the model is a PyTorch module,
+# and if so, saves the torch model in a file called model.pt, its hyperparameters in a file called hyperparameters.json
+# and its performance metrics in a file called metrics.json.
+
+# Your metrics should include:
+
+#     The RMSE loss of your model under a key called RMSE_loss for training, validation, and test sets
+#     The R^2 score of your model under a key called R_squared for training, validation, and test sets
+#     The time taken to train the model under a key called training_duration
+#     The average time taken to make a prediction under a key called inference_latency
+
+# Every time you train a model, create a new folder whose name is the current date and time.
+
+# So, for example, a model trained on the 1st of January at 08:00:00 would be saved in a folder called models/neural_networks/regression/2018-01-01_08:00:00.
+
+def save_model(model):
+    torch.save(model.state_dict(), 'model.pt')
+
 
 if __name__ == "__main__":
     dataset = AirbnbNightlyPriceRegressionDataset()
     train_loader, val_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
     config = get_nn_config()
-    model = NN(config)
-    train(model, config)
+    model = NN(**config)
+    train(model, **config)
+
+    #state_dict = model.state_dict()
+    #print(state_dict)
+
+
+    #state_dict = torch.load('model.pt')
+    #new_model = NN()
+    #new_model.load_state_dict(state_dict)

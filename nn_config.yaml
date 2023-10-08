@@ -1,16 +1,17 @@
 # nn_config.yaml
 
-# Neural Network Architecture Configuration
-architecture:
-  optimiser: 'Adam'           # Name of the optimizer (e.g., Adam, SGD, etc.)
-  learning_rate: 0.001        # Learning rate for the optimizer
-  hidden_layer_width: 64      # Width of each hidden layer (all hidden layers have the same width)
-  num_hidden_layers: 3        # Depth of the model (number of hidden layers)
+
+optimiser: 'Adam'           # Name of the optimizer (e.g., Adam, SGD, etc.)
+learning_rate: 0.001        # Learning rate for the optimizer
+hidden_layer_width: 16      # Width of each hidden layer (all hidden layers have the same width)
+depth: 2        # Depth of the model (number of hidden layers)
+input_dim: 9
+output_dim: 1
 
 # Other hyperparameters (you can add more if needed)
-hyperparameters:
-  batch_size: 32              # Batch size for training
-  epochs: 100                 # Number of training epochs
-  dropout_prob: 0.2           # Dropout probability (if used)
-  weight_decay: 1e-4          # L2 regularization strength (if used)
-  activation_function: 'relu' # Activation function for hidden layers (e.g., relu, sigmoid, etc.)
+
+batch_size: 32              # Batch size for training
+epochs: 100                 # Number of training epochs
+dropout_prob: 0.2           # Dropout probability (if used)
+weight_decay: 1e-4          # L2 regularization strength (if used)
+activation_function: 'relu' # Activation function for hidden layers (e.g., relu, sigmoid, etc.)
