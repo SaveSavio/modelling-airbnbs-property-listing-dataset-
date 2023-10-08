@@ -6,6 +6,7 @@ from tabular_data import load_airbnb
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 import yaml
+import json
 
 
 class AirbnbNightlyPriceRegressionDataset(Dataset):
@@ -137,8 +138,20 @@ def get_nn_config(config_file_path='nn_config.yaml'):
 
 # So, for example, a model trained on the 1st of January at 08:00:00 would be saved in a folder called models/neural_networks/regression/2018-01-01_08:00:00.
 
-def save_model(model):
+def save_model(model, config, RMSE_loss = None, R_squared = None, training_duration = None, inference_latency = None):
     torch.save(model.state_dict(), 'model.pt')
+    
+    hyperparameters_file_path = 'hyperparameters.json'
+    metrics_file_path = 'metrics.json'
+
+    metrics = {'RMSE_loss': RMSE_loss, 'R_squared': R_squared, 'training_duration': training_duration, 'interference_latency': inference_latency}
+
+    # Open the file in write mode and save the dictionary as JSON
+    with open(hyperparameters_file_path, 'w') as json_file:
+        json.dump(config, json_file, indent=4)  # Use 'indent' for pretty formatting (optional)
+
+    with open(metrics_file_path, 'w') as json_file:
+        json.dump(metrics, json_file, indent=4)  # Use 'indent' for pretty formatting (optional)
 
 
 if __name__ == "__main__":
@@ -147,10 +160,6 @@ if __name__ == "__main__":
     config = get_nn_config()
     model = NN(**config)
     train(model, **config)
-
-    #state_dict = model.state_dict()
-    #print(state_dict)
-
 
     #state_dict = torch.load('model.pt')
     #new_model = NN()
