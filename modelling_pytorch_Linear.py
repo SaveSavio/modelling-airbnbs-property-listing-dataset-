@@ -22,6 +22,10 @@ class AirbnbNightlyPriceRegressionDataset(Dataset):
     def __len__(self):
         return len(self.features)
 
+########  THIS FUNCTION HERE IS NOT STRICTLY FOLLOWING THE INSTRUCTIONS #############
+# Create a dataloader for the train set and test set that shuffles the data.
+# Further, split the train set into train and validation.
+######## Secondo me, è giusta.... ###################################################
 
 def data_loader(dataset, train_ratio=0.7, val_ratio=0.15, batch_size=32, shuffle=True):    
     # TODO: confirm batch is necessary, cause I am splitting also train and test sets???
@@ -40,50 +44,32 @@ def data_loader(dataset, train_ratio=0.7, val_ratio=0.15, batch_size=32, shuffle
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=shuffle)
 
     return train_loader, val_loader, test_loader
+########################################################################################
 
-
-class NN(torch.nn.Module):
+class LinearRegression(torch.nn.Module):
     """
-        Define a fully connected neural network.
-        On initialization, set the following
-            Parameters:
-                input_dim: the dimension of the input layer
-                output dim:
-                dept: Depth of the model (number of hidden layers)
-                width: Width of each hidden layer (all hidden layers have the same width)
+        Define a fully connected neural network
     """
-    def __init__(self, input_dim=9, output_dim=1, depth=1, width=9, **kwargs):
-        super().__init__()
-        # define layers
-        self.layers = torch.nn.Sequential()
-        
-        # Input layer
-        self.layers.add_module("input_layer", torch.nn.Linear(input_dim, width))
-        self.layers.add_module("relu1",  torch.nn.ReLU())
+    def __init__(self):
+        super().__init__() # initializing super allows to get hold of all the methods of the parent class
+        # initialize parameters
+        # takes as argument the number of inputs and the number of outputs (n, m)
+        self.linear_layer = torch.nn.Linear(9, 1)
 
-        # Hidden layers
-        for i in range(depth - 1):
-            self.layers.add_module(f"hidden_layer{i}", torch.nn.Linear(width, width))
-            self.layers.add_module(f"relu{i + 1}",  torch.nn.ReLU())
-
-        # Output layer
-        self.layers.add_module("output_layer",  torch.nn.Linear(width, output_dim))
+    def forward(self, features): #like __call__ but inherited from nn.Module
+        # I want to make an instance of the class callable, so I can call it on the features
+        # use the layers of transformation to process the features
+        # forward allows to perform a forward pass
+        return self.linear_layer(features)
 
 
-    def forward(self, X):
-        # return prediction
-        return self.layers(X)
-
-
-def train(model, epochs = 100, optimizer='Adam', **kwargs): ## TODO: consider if we have to pass train_loader to it
+def train(model, epochs = 100): ## TODO: consider if we have to pass train_loader to it
     
-    if optimizer == 'Adam': # TODO: should implement alternative optimizers
-        # torch provides model parameters throught the .parameters() method
-        # this method is inherited from the torch class
-        optimizer = torch.optim.Adam(params=model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(params=model.parameters(), lr=0.001)
+    # torch provides model parameters throught the .parameters() method
+    # this is inherited from the torch class
 
-    writer = SummaryWriter() # initialize an instance of this class for Tensorboard
-
+    writer = SummaryWriter()
     batch_idx = 0 # initalize outside the epoch
 
     for epoch in range(epochs):
@@ -103,29 +89,9 @@ def train(model, epochs = 100, optimizer='Adam', **kwargs): ## TODO: consider if
             writer.add_scalar('loss', loss.item(), batch_idx) # cannot used the batch index because it resets every epoch
             batch_idx += 1
 
-
-def get_nn_config(config_file_path='nn_config.yaml'):
-    """
-        Reads the neural network configuration from a YAML file and returns it as a dictionary.
-        
-        Parameters:
-            config_file_path (str): Path to the YAML configuration file.
-        Returns:
-            dict: A dictionary containing the configuration settings.
-    """
-    try:
-        with open(config_file_path, 'r') as config_file:
-            config = yaml.safe_load(config_file)
-        return config
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Configuration file '{config_file_path}' not found.")
-    except yaml.YAMLError as e:
-        raise ValueError(f"Error parsing the configuration file: {str(e)}")
-
+model = LinearRegression()
 
 if __name__ == "__main__":
     dataset = AirbnbNightlyPriceRegressionDataset()
     train_loader, val_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
-    config = get_nn_config()
-    model = NN(config)
-    train(model, config)
+    train(model)
