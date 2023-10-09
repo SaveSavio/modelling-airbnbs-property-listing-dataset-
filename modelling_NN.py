@@ -94,7 +94,7 @@ def train(model, epochs = 100, optimizer='Adam', **kwargs): ## TODO: consider if
             features, labels = batch
             prediction = model(features)
             loss = F.mse_loss(prediction, labels)
-            #R_squared = r2_score(prediction, labels)
+            
             # now we need to take an optimization step by
             loss.backward() # differentiate the loss
             # mind you it does not overwrite but add to the gradient
@@ -110,9 +110,11 @@ def train(model, epochs = 100, optimizer='Adam', **kwargs): ## TODO: consider if
             # TODO: I should probably convert to numpy array first?
             #R_squared = r2_score(prediction, labels)
 
+        R_squared = r_squared(prediction, labels)
+        print(R_squared)
             # TODO: The time taken to train the model under a key called training_duration
             # TODO: The average time taken to make a prediction under a key called inference_latency
-    return loss#, R_squared
+    return loss.item(), R_squared
 
 
 def get_nn_config(config_file_path='nn_config.yaml'):
@@ -143,17 +145,36 @@ def save_model(model, config, RMSE_loss = None, R_squared = None, training_durat
     os.mkdir(model_path)     # Create a directory with the formatted name
     torch.save(model.state_dict(), model_path+'/model.pt')
     
-    hyperparameters_file = 'hyperparameters.json'
-    metrics_file = 'metrics.json'
+    hyperparameters_file = '/hyperparameters.json'
+    metrics_file = '/metrics.json'
 
     metrics = {'RMSE_loss': RMSE_loss, 'R_squared': R_squared, 'training_duration': training_duration, 'interference_latency': inference_latency}
 
-    # Open the file in write mode and save the dictionary as JSON
-    with open(hyperparameters_file, 'w') as json_file:
-        json.dump(config, json_file, indent=4)  # Use 'indent' for pretty formatting (optional)
+    with open(model_path+hyperparameters_file, 'w') as json_file:
+        json.dump(config, json_file) 
 
-    with open(metrics_file, 'w') as json_file:
-        json.dump(metrics, json_file, indent=4)  # Use 'indent' for pretty formatting (optional)
+    with open(model_path+metrics_file, 'w') as json_file:
+        json.dump(metrics, json_file) 
+
+
+def r_squared(predictions, labels):
+    """
+    Calculate the R-squared (coefficient of determination) between predictions and labels.
+
+    Args:
+        predictions (torch.Tensor): Tensor containing predicted values.
+        labels (torch.Tensor): Tensor containing true labels.
+
+    Returns:
+        float: R-squared score.
+    """
+    mean_labels = torch.mean(labels)
+    total_sum_of_squares = torch.sum((labels - mean_labels)**2)
+    residual_sum_of_squares = torch.sum((labels - predictions)**2)
+    
+    r2 = 1 - (residual_sum_of_squares / total_sum_of_squares)
+    
+    return r2.item()
 
 
 if __name__ == "__main__":
@@ -161,9 +182,9 @@ if __name__ == "__main__":
     train_loader, val_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
     config = get_nn_config()
     model = NN(**config)
-    loss = train(model, **config)
+    loss, R_squared = train(model, **config)
 
-    save_model(model, config, RMSE_loss = loss)
+    save_model(model, config, RMSE_loss = loss, R_squared=R_squared)
     
     #state_dict = torch.load('model.pt')
     #new_model = NN()
