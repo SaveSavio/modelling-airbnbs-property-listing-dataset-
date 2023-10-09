@@ -7,7 +7,9 @@ import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 import yaml
 import json
-
+import os
+from datetime import datetime
+from sklearn.metrics import r2_score
 
 class AirbnbNightlyPriceRegressionDataset(Dataset):
     def __init__(self):
@@ -92,17 +94,25 @@ def train(model, epochs = 100, optimizer='Adam', **kwargs): ## TODO: consider if
             features, labels = batch
             prediction = model(features)
             loss = F.mse_loss(prediction, labels)
+            #R_squared = r2_score(prediction, labels)
             # now we need to take an optimization step by
             loss.backward() # differentiate the loss
             # mind you it does not overwrite but add to the gradient
-            print(loss)
-            # TODO: optimization step
-            #print(loss.item())
+            #print(loss)
+            print("mse: ", loss.item())
+
             optimizer.step()
             optimizer.zero_grad() # this is necessary because of the behaviour of .backward() not overwriting values
 
             writer.add_scalar('loss', loss.item(), batch_idx) # cannot used the batch index because it resets every epoch
+
             batch_idx += 1
+            # TODO: I should probably convert to numpy array first?
+            #R_squared = r2_score(prediction, labels)
+
+            # TODO: The time taken to train the model under a key called training_duration
+            # TODO: The average time taken to make a prediction under a key called inference_latency
+    return loss#, R_squared
 
 
 def get_nn_config(config_file_path='nn_config.yaml'):
@@ -123,34 +133,26 @@ def get_nn_config(config_file_path='nn_config.yaml'):
     except yaml.YAMLError as e:
         raise ValueError(f"Error parsing the configuration file: {str(e)}")
 
-# Adapt your function called save_model so that it detects whether the model is a PyTorch module,
-# and if so, saves the torch model in a file called model.pt, its hyperparameters in a file called hyperparameters.json
-# and its performance metrics in a file called metrics.json.
-
-# Your metrics should include:
-
-#     The RMSE loss of your model under a key called RMSE_loss for training, validation, and test sets
-#     The R^2 score of your model under a key called R_squared for training, validation, and test sets
-#     The time taken to train the model under a key called training_duration
-#     The average time taken to make a prediction under a key called inference_latency
-
-# Every time you train a model, create a new folder whose name is the current date and time.
-
-# So, for example, a model trained on the 1st of January at 08:00:00 would be saved in a folder called models/neural_networks/regression/2018-01-01_08:00:00.
 
 def save_model(model, config, RMSE_loss = None, R_squared = None, training_duration = None, inference_latency = None):
-    torch.save(model.state_dict(), 'model.pt')
     
-    hyperparameters_file_path = 'hyperparameters.json'
-    metrics_file_path = 'metrics.json'
+    current_time = datetime.now()    # Get the current date and time
+    folder_name = current_time.strftime('%Y-%m-%d_%H.%M.%S') # Format the current time as a string in the desired format
+
+    model_path = './neural_networks/regression/' + folder_name
+    os.mkdir(model_path)     # Create a directory with the formatted name
+    torch.save(model.state_dict(), model_path+'/model.pt')
+    
+    hyperparameters_file = 'hyperparameters.json'
+    metrics_file = 'metrics.json'
 
     metrics = {'RMSE_loss': RMSE_loss, 'R_squared': R_squared, 'training_duration': training_duration, 'interference_latency': inference_latency}
 
     # Open the file in write mode and save the dictionary as JSON
-    with open(hyperparameters_file_path, 'w') as json_file:
+    with open(hyperparameters_file, 'w') as json_file:
         json.dump(config, json_file, indent=4)  # Use 'indent' for pretty formatting (optional)
 
-    with open(metrics_file_path, 'w') as json_file:
+    with open(metrics_file, 'w') as json_file:
         json.dump(metrics, json_file, indent=4)  # Use 'indent' for pretty formatting (optional)
 
 
@@ -159,8 +161,10 @@ if __name__ == "__main__":
     train_loader, val_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
     config = get_nn_config()
     model = NN(**config)
-    train(model, **config)
+    loss = train(model, **config)
 
+    save_model(model, config, RMSE_loss = loss)
+    
     #state_dict = torch.load('model.pt')
     #new_model = NN()
     #new_model.load_state_dict(state_dict)

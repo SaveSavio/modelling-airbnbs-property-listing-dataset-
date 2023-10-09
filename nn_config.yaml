@@ -11,7 +11,7 @@ output_dim: 1
 # Other hyperparameters (you can add more if needed)
 
 batch_size: 32              # Batch size for training
-epochs: 100                 # Number of training epochs
+epochs: 10                # Number of training epochs
 dropout_prob: 0.2           # Dropout probability (if used)
 weight_decay: 1e-4          # L2 regularization strength (if used)
 activation_function: 'relu' # Activation function for hidden layers (e.g., relu, sigmoid, etc.)
