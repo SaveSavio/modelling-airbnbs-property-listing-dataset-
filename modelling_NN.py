@@ -10,6 +10,9 @@ import json
 import os
 from datetime import datetime
 from sklearn.metrics import r2_score
+import itertools
+import typing
+
 
 class AirbnbNightlyPriceRegressionDataset(Dataset):
     def __init__(self):
@@ -176,6 +179,15 @@ def r_squared(predictions, labels):
     
     return r2.item()
 
+def generate_nn_configs(hyperparameters: typing.Dict[str, typing.Iterable]):
+    keys, values = zip(*hyperparameters.items())
+    yield from (dict(zip(keys, v)) for v in itertools.product(*values))
+
+def find_best_nn(grid):
+    hyperparameters = generate_nn_configs(grid)
+    for config in hyperparameters:
+        print(config)
+        train(model, **config)
 
 if __name__ == "__main__":
     dataset = AirbnbNightlyPriceRegressionDataset()
@@ -184,8 +196,14 @@ if __name__ == "__main__":
     model = NN(**config)
     loss, R_squared = train(model, **config)
 
-    save_model(model, config, RMSE_loss = loss, R_squared=R_squared)
+    #save_model(model, config, RMSE_loss = loss, R_squared=R_squared)
     
-    #state_dict = torch.load('model.pt')
-    #new_model = NN()
-    #new_model.load_state_dict(state_dict)
+    grid = {
+    "learning_rate": [0.01, 0.001],
+    "depth": [1, 2, 3],
+    "hidden layer width": [16],
+    "batch size": [16, 32],
+    "epochs": [10]
+    }
+
+    find_best_nn(grid=grid)

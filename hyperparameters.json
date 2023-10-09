@@ -1,1 +1,0 @@
-{"optimiser": "Adam", "learning_rate": 0.001, "hidden_layer_width": 16, "depth": 2, "input_dim": 9, "output_dim": 1, "batch_size": 32, "epochs": 10, "dropout_prob": 0.2, "weight_decay": "1e-4", "activation_function": "relu"}
