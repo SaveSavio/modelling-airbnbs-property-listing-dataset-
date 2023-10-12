@@ -132,7 +132,7 @@ def train(model, epochs = 10, optimizer='Adam', **kwargs): ## TODO: consider if 
     
     average_inference_latency = cumulative_inference_latency/epochs
     print("average inference latency:", average_inference_latency)
-    return loss.item(), R_squared, training_time, average_inference_latency
+    return loss.item(), R_squared, validation_loss, training_time, average_inference_latency
 
 
 def get_nn_config(config_file_path='nn_config.yaml'):
@@ -154,7 +154,7 @@ def get_nn_config(config_file_path='nn_config.yaml'):
         raise ValueError(f"Error parsing the configuration file: {str(e)}")
 
 
-def save_model(model, config, RMSE_loss = None, R_squared = None, training_duration = None, inference_latency = None):
+def save_model(model, config, RMSE_loss = None, validation_loss=None, R_squared = None, training_duration = None, inference_latency = None):
     
     current_time = datetime.now()    # Get the current date and time
     folder_name = current_time.strftime('%Y-%m-%d_%H.%M.%S') # Format the current time as a string in the desired format
@@ -166,7 +166,7 @@ def save_model(model, config, RMSE_loss = None, R_squared = None, training_durat
     hyperparameters_file = '/hyperparameters.json'
     metrics_file = '/metrics.json'
 
-    metrics = {'RMSE_loss': RMSE_loss, 'R_squared': R_squared, 'training_duration': training_duration, 'interference_latency': inference_latency}
+    metrics = {'RMSE_loss': RMSE_loss, 'R_squared': R_squared, 'validation_loss':validation_loss, 'training_duration': training_duration, 'interference_latency': inference_latency}
 
     with open(model_path+hyperparameters_file, 'w') as json_file:
         json.dump(config, json_file) 
@@ -200,14 +200,25 @@ def generate_nn_configs(hyperparameters: typing.Dict[str, typing.Iterable]):
     yield from (dict(zip(keys, v)) for v in itertools.product(*values))
 
 
-def find_best_nn(grid):
+def find_best_nn(grid, performance_indicator = "rmse"):
 
     hyperparameters_grid = generate_nn_configs(grid) # generate the grid
+    if performance_indicator == "rmse":
+        best_performance = np.inf
 
     for config in hyperparameters_grid: # loop through th grid
         print(config)
-        loss, R_squared, training_time, inference_latency = train(model, **config) # determine the loss for each hyperparam configuration
-        save_model(model, config, RMSE_loss = loss, R_squared=R_squared, training_duration=training_time, inference_latency=inference_latency) # save the model
+        loss, R_squared, validation_loss, training_time, inference_latency = train(model, **config) # determine the loss for each hyperparam configuration
+        if validation_loss < best_performance:
+            best_training_loss = loss
+            best_validation_loss = validation_loss
+            best_R_squared = R_squared
+            best_model = model
+            best_model_hyperparameters = config
+            best_model_training_time = training_time
+            best_model_inference_latency = inference_latency
+
+    save_model(best_model, best_model_hyperparameters, RMSE_loss = best_training_loss, validation_loss = best_training_loss, R_squared=best_R_squared, training_duration=best_model_training_time, inference_latency=best_model_inference_latency) # save the model
     
         #TODO: now find the best model
         #TODO: save the best model in a folder
@@ -230,11 +241,11 @@ if __name__ == "__main__":
     model = NN(**config)
     
     grid = {
-    "learning_rate": [0.01],
+    "learning_rate": [0.01, 0.001],
     "depth": [2, 3],
     "hidden layer width": [8, 16],
-    "batch size": [32],
-    "epochs": [10]
+    "batch size": [16, 32],
+    "epochs": [10, 20]
     }
 
     find_best_nn(grid=grid)
