@@ -12,6 +12,9 @@ from datetime import datetime
 from sklearn.metrics import r2_score
 import itertools
 import typing
+import glob
+import numpy as np
+import time
 
 
 class AirbnbNightlyPriceRegressionDataset(Dataset):
@@ -42,8 +45,9 @@ def data_loader(dataset, train_ratio=0.7, val_ratio=0.15, batch_size=32, shuffle
 
     # not so nice to see...
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=shuffle)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=shuffle)
+    val_loader = DataLoader(val_dataset, batch_size=val_size, shuffle=shuffle) # use full batch for validation and testing
+    #TODO: change val to validation
+    test_loader = DataLoader(test_dataset, batch_size=test_size, shuffle=shuffle)
 
     return train_loader, val_loader, test_loader
 
@@ -81,43 +85,54 @@ class NN(torch.nn.Module):
         return self.layers(X)
 
 
-def train(model, epochs = 100, optimizer='Adam', **kwargs): ## TODO: consider if we have to pass train_loader to it
-    
+def train(model, epochs = 10, optimizer='Adam', **kwargs): ## TODO: consider if we have to pass train_loader to it
     if optimizer == 'Adam': # TODO: should implement alternative optimizers
         # torch provides model parameters throught the .parameters() method
         # this method is inherited from the torch class
         optimizer = torch.optim.Adam(params=model.parameters(), lr=0.001)
 
-    writer = SummaryWriter() # initialize an instance of this class for Tensorboard
+    writer = SummaryWriter() # Tensorboard class init
 
     batch_idx = 0 # initalize outside the epoch
-
+    training_time = 0
+    cumulative_inference_latency = 0
+    
     for epoch in range(epochs):
+        print("\nepoch: ", epoch, "/", epochs)
+        training_start_time = time.time()
+
         for batch in train_loader:
             features, labels = batch
-            prediction = model(features)
+            prediction = model(features) # forward step
             loss = F.mse_loss(prediction, labels)
-            
-            # now we need to take an optimization step by
             loss.backward() # differentiate the loss
-            # mind you it does not overwrite but add to the gradient
-            #print(loss)
-            print("mse: ", loss.item())
-
-            optimizer.step()
-            optimizer.zero_grad() # this is necessary because of the behaviour of .backward() not overwriting values
-
-            writer.add_scalar('loss', loss.item(), batch_idx) # cannot used the batch index because it resets every epoch
-
-            batch_idx += 1
-            # TODO: I should probably convert to numpy array first?
-            #R_squared = r2_score(prediction, labels)
-
-        R_squared = r_squared(prediction, labels)
-        print(R_squared)
+            #print("mse: ", loss.item())
+            R_squared = r_squared(prediction, labels)
             # TODO: The time taken to train the model under a key called training_duration
             # TODO: The average time taken to make a prediction under a key called inference_latency
-    return loss.item(), R_squared
+            optimizer.step() # optimization step
+            optimizer.zero_grad() # set gradient values to zero before another backwards step
+            writer.add_scalar('loss', loss.item(), batch_idx) # TensorFlow
+            batch_idx += 1 # using a separate index so that it does not reset every epoch as "batch" does
+
+        training_stop_time = time.time()
+        training_time += training_stop_time - training_start_time
+        print("training time: ", training_time)
+
+        for batch in val_loader:
+            
+            features, labels = batch
+            inference_start_time = time.time()
+            prediction = model(features)
+            inference_stop_time = time.time()
+            cumulative_inference_latency += inference_stop_time - inference_start_time
+            validation_loss = F.mse_loss(prediction, labels) # check the validation loss every epoch
+            print("validation mse: ", validation_loss.item())
+            writer.add_scalar('validation loss', validation_loss.item(), epoch) # TensorFlow
+    
+    average_inference_latency = cumulative_inference_latency/epochs
+    print("average inference latency:", average_inference_latency)
+    return loss.item(), R_squared, training_time, average_inference_latency
 
 
 def get_nn_config(config_file_path='nn_config.yaml'):
@@ -179,31 +194,51 @@ def r_squared(predictions, labels):
     
     return r2.item()
 
+
 def generate_nn_configs(hyperparameters: typing.Dict[str, typing.Iterable]):
     keys, values = zip(*hyperparameters.items())
     yield from (dict(zip(keys, v)) for v in itertools.product(*values))
 
+
 def find_best_nn(grid):
-    hyperparameters = generate_nn_configs(grid)
-    for config in hyperparameters:
+
+    hyperparameters_grid = generate_nn_configs(grid) # generate the grid
+
+    for config in hyperparameters_grid: # loop through th grid
         print(config)
-        train(model, **config)
+        loss, R_squared, training_time, inference_latency = train(model, **config) # determine the loss for each hyperparam configuration
+        save_model(model, config, RMSE_loss = loss, R_squared=R_squared, training_duration=training_time, inference_latency=inference_latency) # save the model
+    
+        #TODO: now find the best model
+        #TODO: save the best model in a folder
+
+
+#TODO: Complete the training loop so that it iterates through every batch in the dataset for the specified number of epochs,
+# and optimises the model parameters.
+# You should add a step to evaluate the model performance on the validation dataset after each epoch.
+
+#TODO: Use tensorboard to visualize the training curves of the model and the accuracy both on the training and validation set.
 
 if __name__ == "__main__":
     dataset = AirbnbNightlyPriceRegressionDataset()
     train_loader, val_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
+
+    batch_size = len(dataset)  # Full batch
+    #dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True) # TODO: what was this here for?
+
     config = get_nn_config()
     model = NN(**config)
-    loss, R_squared = train(model, **config)
-
-    #save_model(model, config, RMSE_loss = loss, R_squared=R_squared)
     
     grid = {
-    "learning_rate": [0.01, 0.001],
-    "depth": [1, 2, 3],
-    "hidden layer width": [16],
-    "batch size": [16, 32],
+    "learning_rate": [0.01],
+    "depth": [2, 3],
+    "hidden layer width": [8, 16],
+    "batch size": [32],
     "epochs": [10]
     }
 
     find_best_nn(grid=grid)
+
+    #loss, R_squared = train(model, **config) # this is here in case I do not want to use get_nn_config
+
+    #save_model(model, config, RMSE_loss = loss, R_squared=R_squared)   
