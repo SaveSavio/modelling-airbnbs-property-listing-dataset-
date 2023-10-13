@@ -14,6 +14,25 @@ from sklearn.preprocessing import StandardScaler
 from tabular_data import load_airbnb
 from typing import Type
 
+def grid_generator(parameters_grid: typing.Dict[str, typing.Iterable]):
+    """
+        Generates a parameters grid from a dictionary. It uses Cartesian product
+        to generate the possible combinations.
+        It uses a generator expression to yield each combination.
+        Parameters:
+            parameters_grid, which is expected to be a dictionary where keys
+            represent parameter names (as strings), and values are iterable collections
+            (e.g., lists or tuples) containing possible values for those parameters.
+        Returns:
+            a generator expression to yield each combination.
+    """
+    
+    # unpacks the keys and values from the parameters_grid dictionary. 
+    keys, values = zip(*parameters_grid.items())
+
+    # generates the Cartesian product of the iterable collections in values. 
+    # dict(zip(keys, v)) is used to create a dictionary for each combination
+    yield from (dict(zip(keys, v)) for v in itertools.product(*values))
 
 def custom_tune_regression_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
         X_train, X_validation, X_test, y_train, y_validation, y_test):
@@ -21,34 +40,35 @@ def custom_tune_regression_model_hyperparameters(model_class_obj: Type, paramete
         Tunes the regression model hyperparameters.
         Implemented explicitely, i.e. without employing sklearn GridSearchCV
         Paremeters:
-            - The model class
+            - The model class (and NOT an instance of the class)
             - A dictionary of hyperparameter names mapping to a list of values to be tried
             - The training, validation, and test sets
         Returns:
-            - the best model
+            - the best model (amongst those in the parameters grid)
             - a dictionary of its best hyperparameter values
             - a dictionary of its performance metrics.
     """
 
-    # initialize parameters
+    # initialize performance indicator variable
     best_hyperparams, best_loss = None, np.inf
 
-    def grid_search(parameters_grid: typing.Dict[str, typing.Iterable]):
-        keys, values = zip(*parameters_grid.items())
-        yield from (dict(zip(keys, v)) for v in itertools.product(*values))
-
-    for hyperparams in grid_search(parameters_grid):
+    # recursively fits the model on the training data
+    for hyperparams in grid_generator(parameters_grid):
         model = model_class_obj(**hyperparams)
         model.fit(X_train, y_train)
 
+    # predicts on the validation dataset and calculates the loss
     y_validation_pred = model.predict(X_validation)
     validation_loss = mean_squared_error(y_validation, y_validation_pred)
 
     print(f"H-Params: {hyperparams} Validation loss: {validation_loss}")
+    
+    # compares to best loss, if better, and updates best loss and hyperparams
     if validation_loss < best_loss:
         best_loss = validation_loss
         best_hyperparams = hyperparams
 
+    # finally makes a prediction on test data
     y_pred = model.predict(X_test)
     test_loss = mean_squared_error(y_test, y_pred)
     model_performance = {"best hyperparameters": best_hyperparams, "validation_RMSE": test_loss}
@@ -160,31 +180,40 @@ def find_best_model(search_directory = './models/regression'):
 
 
 if __name__ == "__main__":
+    data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
+    
     # load the previously cleaned data
-    df = pd.read_csv("./airbnb-property-listings/tabular_data/clean_tabular_data.csv")
-    # select labels and features
-    features, labels = load_airbnb(df, label="Price_Night", numeric_only=True)
-    # rescale the features
-    scaler = StandardScaler()
-    scaled_features = scaler.fit_transform(features) # Fit and transform the data
+    df = pd.read_csv(data_path)
+
+    # define labels and features
+    features, labels =load_airbnb(df, label="Price_Night", numeric_only=True) 
+
+    # features scaling  
+    scaler = StandardScaler()  
+    scaled_features = scaler.fit_transform(features) # fit and transform the data
+
     # split in train, validation, test sets
     X_train, X_test, y_train, y_test = train_test_split(scaled_features, labels, test_size=0.3)
     X_validation, X_test, y_validation, y_test = train_test_split(X_test, y_test, test_size=0.5)
 
-    model_list = [SGDRegressor, RandomForestRegressor, GradientBoostingRegressor]
+    # list of models to be used for the regression
+    model_list = [SGDRegressor, # model 1
+                  RandomForestRegressor, # model 2
+                  GradientBoostingRegressor] # model 3
     
+    # grid list of dictonaries for model optimization. Each dictionary for the corresponding model
     parameter_grid_list = [
-        {'alpha': [0.0001, 0.001, 0.01, 0.1],
+        {'alpha': [0.0001, 0.001, 0.01, 0.1], # model 1
         'penalty': ['l2', 'l1', 'elasticnet'],
         'loss': ['squared_error', 'huber', 'epsilon_insensitive'],
         'max_iter': [10**4, 10**5, 10**6]}, 
         {
-        'n_estimators': [10, 50, 100],
+        'n_estimators': [10, 50, 100], # model 2
         'max_depth': [None, 10, 20, 30],
         'min_samples_split': [2, 5, 10],
         'min_samples_leaf': [1, 2, 4]},
         {
-        'n_estimators': [50, 100, 200],
+        'n_estimators': [50, 100, 200], # model 3
         'learning_rate': [0.01, 0.1, 0.2],
          'max_depth': [10, 20, 30],
          'min_samples_split': [2, 3, 4],
@@ -192,5 +221,9 @@ if __name__ == "__main__":
          }
         ]
     
+    # evaluate all models in the model list according to the parameters in the grid
+    # for each model type, save the best
     evaluate_all_models(model_list, parameter_grid_list, X_train, X_test, y_train, y_test)
+    
+    # find the best overall model
     best_model, best_performance, best_hyperparams = find_best_model()

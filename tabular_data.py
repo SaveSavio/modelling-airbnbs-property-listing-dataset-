@@ -56,6 +56,7 @@ def clean_tabular_data(df):
     functions = [remove_rows_with_missing_ratings,
                  combine_description_strings,
                  set_default_feature_values]
+    
     df_clean = df
 
     for func in functions:
