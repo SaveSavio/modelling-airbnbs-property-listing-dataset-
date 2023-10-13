@@ -126,6 +126,7 @@ def save_model(model, model_filename: str, folder_path: str, model_info: dict):
             - folder path
             - dictionary containing the summary of the model perfomance on the dataset
     """
+
     full_model_path = folder_path + model_filename
 
     if os.path.isdir(folder_path) == False:
@@ -173,6 +174,7 @@ def find_best_model(search_directory = './models/regression'):
             - a dictionary of its hyperparameters
             - a dictionary of its performance metrics.
     """
+    
     # Define the file extension you want to search for
     file_extension = '*.json'
 

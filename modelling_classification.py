@@ -105,10 +105,10 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
         
         # define model naming strategy and saving folder path
         model_filename = 'best_'+model.__name__
-        folder_path = 'models/classification/logistic_regression/'+model.__name__+'/'
+        task_folder = 'models/classification/logistic_regression/'+model.__name__+'/'
 
         save_model(model, model_filename=model_filename,
-                   folder_path=folder_path, model_info=model_performance)
+                   folder_path=task_folder, model_info=model_performance)
 
 
 def find_best_model(search_directory = './models/classification/logistic_regression'):
@@ -190,5 +190,5 @@ if __name__ == "__main__":
     # evaluate all models in the model list according to the parameters in the grid
     # for each model type, save the best
     evaluate_all_models(model_list, param_grid_list, X_train, X_test, y_train, y_test)
-    
+
     best_model, best_performance, best_hyperparams = find_best_model()

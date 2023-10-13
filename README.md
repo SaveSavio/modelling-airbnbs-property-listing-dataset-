@@ -126,4 +126,11 @@ The same framework as for the regression models, has been build for a classifica
 The file <u>modelling_classification.py</u>:<br> contains the same functions and architeture as the regression case, 
 but adapted to classification problems.
 
+The validation will accept a validation_accuracy parameter that determines the validation metric
+and that is passed to GridSearchCV.
+```python
+def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
+                                              X_train, X_test, y_train, y_test,
+                                              validation_accuracy="accuracy", random_state = 1):
+```
 
