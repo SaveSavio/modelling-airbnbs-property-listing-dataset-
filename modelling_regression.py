@@ -34,6 +34,7 @@ def grid_generator(parameters_grid: typing.Dict[str, typing.Iterable]):
     # dict(zip(keys, v)) is used to create a dictionary for each combination
     yield from (dict(zip(keys, v)) for v in itertools.product(*values))
 
+
 def custom_tune_regression_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
         X_train, X_validation, X_test, y_train, y_validation, y_test):
     """
@@ -71,7 +72,11 @@ def custom_tune_regression_model_hyperparameters(model_class_obj: Type, paramete
     # finally makes a prediction on test data
     y_pred = model.predict(X_test)
     test_loss = mean_squared_error(y_test, y_pred)
-    model_performance = {"best hyperparameters": best_hyperparams, "validation_RMSE": test_loss}
+    model_performance = {"best model": model_class_obj,
+                         "best hyperparameters": best_hyperparams,
+                         "validation_RMSE": validation_loss,
+                         "test_RMSE": test_loss}
+
     return model_performance
 
 
@@ -99,13 +104,16 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     # Train the best model on the test dataset and evaluate performance
     best_model.fit(X_test, y_test)
     y_pred = best_model.predict(X_test)
+
     # calculate Root Mean Square Error (test loss) and additional metrics
     rmse = mean_squared_error(y_test, y_pred) 
     r2 = r2_score(y_test, y_pred) 
     mae = mean_absolute_error(y_test, y_pred)
+
     # create a dictionary containing: best hyperparameters and performance metrics
     model_info = {"best hyperparameters": best_hyperparams, "validation_RMSE": rmse, "R^2": r2, "MAE": mae}
-    print(model_info)
+    #print(model_info)
+    
     return model_info
 
 
@@ -113,7 +121,7 @@ def save_model(model, model_filename: str, folder_path: str, model_info: dict):
     """
         Saves a regression model in the desired folder path, alongside its performance indicators
         Parameters:
-            - model class
+            - model class object (not an instance of the class)
             - model filename 
             - folder path
             - dictionary containing the summary of the model perfomance on the dataset
@@ -133,19 +141,28 @@ def save_model(model, model_filename: str, folder_path: str, model_info: dict):
     
 
 def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X_test, y_train, y_test):
-    # decision trees, random forests, and gradient boosting
-    # It's extremely important to apply your tune_regression_model_hyperparameters function
-    # to each of these to tune their hyperparameters before evaluating them
-    # Save the model, hyperparameters, and metrics in a folder named after the model class.
-    # For example, save your best decision tree in a folder called models/regression/decision_tree.
-    # rand_forest = RandomForestRegressor()
-    # grad_boost = GradientBoostingRegressor()
+    """
+        Evaluates all models in the model list.
+        Each model is evaluated according to a grid list by tune_regression_model_hyperparameters function
+        Parameters:
+            a list of model classes (and NOT instances of a class)
+            a grid of model parameters
+            test and training datasets (features and labels)
+        Returns:
+            saves the best model for each class in a folder
+    """
+
     for index, model in enumerate(model_list):
         print(model, parameter_grid_list[index])
         model_performance = tune_regression_model_hyperparameters(model, parameter_grid_list[index],
                                                                   X_train, X_test, y_train, y_test)
-        save_model(model, model_filename='best_'+model.__name__, folder_path='models/regression/'+model.__name__+'/',
-                   model_info=model_performance)
+        
+        # define model naming strategy and saving folder path
+        model_filename = 'best_'+model.__name__
+        folder_path = 'models/regression/'+model.__name__+'/'
+
+        save_model(model, model_filename=model_filename,
+                   folder_path=folder_path, model_info=model_performance)
 
 
 def find_best_model(search_directory = './models/regression'):
@@ -225,5 +242,5 @@ if __name__ == "__main__":
     # for each model type, save the best
     evaluate_all_models(model_list, parameter_grid_list, X_train, X_test, y_train, y_test)
     
-    # find the best overall model
-    best_model, best_performance, best_hyperparams = find_best_model()
+    # find the best overall model for regression
+    best_model, best_performance, best_hyperparams = find_best_model(earch_directory = './models/regression')
