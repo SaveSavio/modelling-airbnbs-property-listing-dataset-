@@ -2,8 +2,8 @@ import pandas as pd
 
 def clean_tabular_data(df):
     """
-        Main Function to clean the Airbnb dataset before analysis.
-        It calls the nested functions on a pandas dataframes
+        Main processing function that cleans the Airbnb dataset before analysis.
+        It calls three nested functions on the pandas dataframe
         Parameters:
             a pandas dataframe
         Returns:
@@ -23,7 +23,8 @@ def clean_tabular_data(df):
 
     def combine_description_strings(df):
         """
-            Combines the list items into the same string
+            Combines the list items in the description column into the same string,
+            after applying some cleaning to remove redundant information.
             Parameters:
                 a pandas dataframe
             Returns:
@@ -48,17 +49,26 @@ def clean_tabular_data(df):
         df[['guests', 'beds', 'bathrooms', 'bedrooms']] = df[['guests', 'beds', 'bathrooms', 'bedrooms']].fillna(value=1)
         return df
 
-    df = remove_rows_with_missing_ratings(df)
-    df = combine_description_strings(df)
-    df = set_default_feature_values(df)
+    # df = remove_rows_with_missing_ratings(df)
+    # df = combine_description_strings(df)
+    # df = set_default_feature_values(df)
 
-    return df
+    functions = [remove_rows_with_missing_ratings,
+                 combine_description_strings,
+                 set_default_feature_values]
+    df_clean = df
+
+    for func in functions:
+        df_clean = func(df_clean)
+
+    return df_clean
 
 
 def load_airbnb(df, label="label", numeric_only=False):
     """
+        this function performs two tasks:
         1) Selects numerical data only and returns two dataframes
-        2) Splits features and labels.
+        2) Splits features and labels
         Parameters:
             A pandas dataframe; the name of the label
         Returns:
@@ -71,6 +81,7 @@ def load_airbnb(df, label="label", numeric_only=False):
     if numeric_only == True:
         features = features.select_dtypes(include='number')
     return (features, labels)
+
 
 if __name__ == "__main__":
     df = pd.read_csv("./airbnb-property-listings/tabular_data/listing.csv")
