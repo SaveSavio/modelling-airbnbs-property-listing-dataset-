@@ -167,6 +167,7 @@ The dataset is then passed to the DataLoader which is embedded in the data_loade
 train_loader, validation_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
 ```
 
+### Modelling and model tuning
 We will now describe the most general case of usage, that in which we set a grid for the hyperparameters tuning. Here's an example of the grid:
 ```python
 grid = {
