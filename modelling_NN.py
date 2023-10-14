@@ -77,16 +77,18 @@ def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, 
 
 class NN(torch.nn.Module):
     """
-        Define a fully connected neural network.
-        On initialization, set the following
+        Defines a fully connected neural network. On initialization, set the following
             Parameters:
-                input_dim: the dimension of the input layer
-                output dim:
-                dept: Depth of the model (number of hidden layers)
+                input_dim: the dimension of the input layer (number of features)
+                output dim: the number of labels to be predicted
+                dept: Depth of the model, i.e. the number of hidden layers
                 width: Width of each hidden layer (all hidden layers have the same width)
+            Returns:
+                when called on a set of features, returns a prediction (forward pass)
     """
 
     def __init__(self, input_dim=9, output_dim=1, depth=1, width=9, **kwargs):
+        
         super().__init__()
         self.layers = torch.nn.Sequential() # define layers
         
