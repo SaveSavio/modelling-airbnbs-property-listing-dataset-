@@ -77,7 +77,8 @@ def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, 
 
 class NN(torch.nn.Module):
     """
-        Defines a fully connected neural network. On initialization, set the following
+        Defines a fully connected neural network. Inherits methods from the class "torch.nn.Module".
+        On initialization, set the following
             Parameters:
                 input_dim: the dimension of the input layer (number of features)
                 output dim: the number of labels to be predicted
@@ -87,7 +88,7 @@ class NN(torch.nn.Module):
                 when called on a set of features, returns a prediction (forward pass)
     """
 
-    def __init__(self, input_dim=9, output_dim=1, depth=1, width=9, **kwargs):
+    def __init__(self, input_dim=9, output_dim=1, depth=1, width=9, **kwargs): # TODO: confirm **kwargs necessity
         
         super().__init__()
         self.layers = torch.nn.Sequential() # define layers
@@ -109,53 +110,94 @@ class NN(torch.nn.Module):
         return self.layers(X) # return prediction
 
 
-def train(model, epochs = 10, optimizer='Adam', **kwargs): ## TODO: consider if we have to pass train_loader to it
-    if optimizer == 'Adam': # TODO: should implement alternative optimizers
-        # torch provides model parameters throught the .parameters() method
-        # this method is inherited from the torch class
-        optimizer = torch.optim.Adam(params=model.parameters(), lr=0.001)
+def train(model, epochs = 10, optimizer='Adam', **kwargs):
+    ## TODO: consider if we have to pass train_loader to it
+    ## TODO: confirm necessity of **kwargs
+    """
+        Training function for the Neural Network        
+        Parameters:
+            - Neural network model (an instance of the NN class)
+            - number of epochs for the training
+            - the optimizer
+        Returns:
+        for the trained model:
+            - loss.item()
+            - R_squared
+            - validation_loss
+            - training_time
+            - average_inference_latency
+    """
 
-    writer = SummaryWriter() # Tensorboard class init
+    # TODO: implement alternative optimizers
+    if optimizer == 'Adam': # [Reminder] torch.nn.Module provides model parameters throught the .parameters() method
+        optimizer = torch.optim.Adam(params=model.parameters(), lr=0.001) 
+    else:
+        raise ValueError("Currently supporting 'Adam' optimizer only")
 
-    batch_idx = 0 # initalize outside the epoch
+     # Tensorboard class initialization
+    writer = SummaryWriter()
+
+    # initalize outside the epochs loop so to create an index for the writer class
+    batch_idx = 0
+
+    # initialize performance indicators for the best model
     training_time = 0
     cumulative_inference_latency = 0
     
+    # outer loop: epochs
     for epoch in range(epochs):
+
         print("\nepoch: ", epoch, "/", epochs)
         training_start_time = time.time()
 
+        # inner loop: trains the model on the training dataset
         for batch in train_loader:
             features, labels = batch
-            prediction = model(features) # forward step
+            
+            # forward step and loss calculation
+            prediction = model(features)
             loss = F.mse_loss(prediction, labels)
-            loss.backward() # differentiate the loss
-            #print("mse: ", loss.item())
-            R_squared = r_squared(prediction, labels)
-            # TODO: The time taken to train the model under a key called training_duration
-            # TODO: The average time taken to make a prediction under a key called inference_latency
-            optimizer.step() # optimization step
-            optimizer.zero_grad() # set gradient values to zero before another backwards step
-            writer.add_scalar('loss', loss.item(), batch_idx) # TensorFlow
-            batch_idx += 1 # using a separate index so that it does not reset every epoch as "batch" does
 
+            # loss differentiation (backward step)
+            loss.backward()
+            # print("mse: ", loss.item())
+            
+            # additional performance metric
+            R_squared = r_squared(prediction, labels)
+
+            # optimization step and gradient zero-ing
+            optimizer.step()
+            optimizer.zero_grad()
+            
+            # TensorFlow writer: add the loss and increase the index
+            writer.add_scalar('loss', loss.item(), batch_idx)
+            batch_idx += 1
+
+        # calculate the training time for an epoch
         training_stop_time = time.time()
         training_time += training_stop_time - training_start_time
         print("training time: ", training_time)
 
-        for batch in val_loader:
-            
+        # inner loop: validation
+        for batch in validation_loader:
             features, labels = batch
             inference_start_time = time.time()
             prediction = model(features)
+
+            # time taken to perform a forward pass on a batch of features
             inference_stop_time = time.time()
             cumulative_inference_latency += inference_stop_time - inference_start_time
-            validation_loss = F.mse_loss(prediction, labels) # check the validation loss every epoch
+            
+            validation_loss = F.mse_loss(prediction, labels)
             print("validation mse: ", validation_loss.item())
+            
+            # TensorFlow writer: add the validation loss and increase the index
             writer.add_scalar('validation loss', validation_loss.item(), epoch) # TensorFlow
     
+    # calculate the batch inference latency as an average across all epochs
     average_inference_latency = cumulative_inference_latency/epochs
     print("average inference latency:", average_inference_latency)
+    
     return loss.item(), R_squared, validation_loss, training_time, average_inference_latency
 
 
@@ -261,7 +303,7 @@ if __name__ == "__main__":
     # initialize an instance of the class which creates a PyTorch dataset
     dataset = AirbnbNightlyPriceRegressionDataset(dataset_path=dataset_path, label=label)
 
-    train_loader, val_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
+    train_loader, validation_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
 
     batch_size = len(dataset)  # Full batch
     #dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True) # TODO: what was this here for?
