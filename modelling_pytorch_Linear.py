@@ -22,13 +22,8 @@ class AirbnbNightlyPriceRegressionDataset(Dataset):
     def __len__(self):
         return len(self.features)
 
-########  THIS FUNCTION HERE IS NOT STRICTLY FOLLOWING THE INSTRUCTIONS #############
-# Create a dataloader for the train set and test set that shuffles the data.
-# Further, split the train set into train and validation.
-######## Secondo me, è giusta.... ###################################################
-
 def data_loader(dataset, train_ratio=0.7, val_ratio=0.15, batch_size=32, shuffle=True):    
-    # TODO: confirm batch is necessary, cause I am splitting also train and test sets???
+    
     dataset_size = len(dataset)
     # Calculate the number of samples for each split
     train_size = int(train_ratio * dataset_size)
@@ -44,26 +39,20 @@ def data_loader(dataset, train_ratio=0.7, val_ratio=0.15, batch_size=32, shuffle
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=shuffle)
 
     return train_loader, val_loader, test_loader
-########################################################################################
 
 class LinearRegression(torch.nn.Module):
     """
-        Define a fully connected neural network
+        Defines single linear layer regression in PyTorch
     """
     def __init__(self):
-        super().__init__() # initializing super allows to get hold of all the methods of the parent class
-        # initialize parameters
-        # takes as argument the number of inputs and the number of outputs (n, m)
+        super().__init__() 
         self.linear_layer = torch.nn.Linear(9, 1)
 
-    def forward(self, features): #like __call__ but inherited from nn.Module
-        # I want to make an instance of the class callable, so I can call it on the features
-        # use the layers of transformation to process the features
-        # forward allows to perform a forward pass
+    def forward(self, features):
         return self.linear_layer(features)
 
 
-def train(model, epochs = 100): ## TODO: consider if we have to pass train_loader to it
+def train(model, epochs = 100):
     
     optimizer = torch.optim.Adam(params=model.parameters(), lr=0.001)
     # torch provides model parameters throught the .parameters() method

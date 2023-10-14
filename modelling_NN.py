@@ -17,7 +17,6 @@ from typing import Any
 import yaml
 
 
-
 class AirbnbNightlyPriceRegressionDataset(Dataset):
     """
         Creates a PyTorch dataset from tabular data.
@@ -49,6 +48,7 @@ def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, 
         Dataloader function that
             - splits the data into test, train and validation datasets
             - shuffles the data
+            - generates batches of data
         Parameters:
             - dataset (an instance of Pytorch DataSet class)
             - train and validation ratios
@@ -197,14 +197,13 @@ def train(model, epochs = 10, optimizer='Adam', **kwargs):
     # calculate the batch inference latency as an average across all epochs
     average_inference_latency = cumulative_inference_latency/epochs
     print("average inference latency:", average_inference_latency)
-    
-    return loss.item(), R_squared, validation_loss, training_time, average_inference_latency
+
+    return loss.item(), R_squared, validation_loss.item(), training_time, average_inference_latency
 
 
 def get_nn_config(config_file_path='nn_config.yaml'):
     """
         Reads the neural network configuration from a YAML file and returns it as a dictionary.
-        
         Parameters:
             config_file_path (str): Path to the YAML configuration file.
         Returns:
@@ -220,19 +219,22 @@ def get_nn_config(config_file_path='nn_config.yaml'):
         raise ValueError(f"Error parsing the configuration file: {str(e)}")
 
 
-def save_model(model, config, RMSE_loss = None, validation_loss=None, R_squared = None, training_duration = None, inference_latency = None):
+def save_model(model, config,
+               RMSE_loss=None, validation_loss=None, R_squared=None,
+               training_duration=None, inference_latency=None,
+               folder_path="./neural_networks/regression/"):
     
     current_time = datetime.now()    # Get the current date and time
     folder_name = current_time.strftime('%Y-%m-%d_%H.%M.%S') # Format the current time as a string in the desired format
 
-    model_path = './neural_networks/regression/' + folder_name
+    model_path = folder_path + folder_name
     os.mkdir(model_path)     # Create a directory with the formatted name
     torch.save(model.state_dict(), model_path+'/model.pt')
     
     hyperparameters_file = '/hyperparameters.json'
     metrics_file = '/metrics.json'
 
-    metrics = {'RMSE_loss': RMSE_loss, 'R_squared': R_squared, 'validation_loss':validation_loss, 'training_duration': training_duration, 'interference_latency': inference_latency}
+    metrics = {'RMSE_loss': RMSE_loss, 'R_squared': R_squared, 'validation_loss': validation_loss, 'training_duration': training_duration, 'interference_latency': inference_latency}
 
     with open(model_path+hyperparameters_file, 'w') as json_file:
         json.dump(config, json_file) 
@@ -262,19 +264,55 @@ def r_squared(predictions, labels):
 
 
 def generate_nn_configs(hyperparameters: typing.Dict[str, typing.Iterable]):
+    """
+        Generates a parameters grid from a dictionary. It uses Cartesian product
+        to generate the possible combinations.
+        It uses a generator expression to yield each combination.
+        Parameters:
+            parameters_grid, which is expected to be a dictionary where keys
+            represent parameter names (as strings), and values are iterable collections
+            (e.g., lists or tuples) containing possible values for those parameters.
+        Returns:
+            a generator expression to yield each combination.
+    """
     keys, values = zip(*hyperparameters.items())
     yield from (dict(zip(keys, v)) for v in itertools.product(*values))
 
 
 def find_best_nn(grid, performance_indicator = "rmse"):
+    """
+        Parameters:
+            A dictionary containing the model parameters. Example:
+                grid = {
+                        "learning_rate": [0.01, 0.001],
+                        "depth": [2, 3],
+                        "hidden layer width": [8, 16],
+                        "batch size": [16, 32],
+                        "epochs": [10, 20]
+                        }
 
+        Returns:
+            saves the best model
+    """
+
+    # Generate the parameters grid
     hyperparameters_grid = generate_nn_configs(grid) # generate the grid
+
+    # TODO: if different performance indicators a needed, then expand the "if"
     if performance_indicator == "rmse":
         best_performance = np.inf
 
-    for config in hyperparameters_grid: # loop through th grid
+    # loop through the grid to find the best model
+    for config in hyperparameters_grid:
         print(config)
+        
+        # initialize an instance of the NN class with config parameters
+        model = NN(**config)
+
+        # perform the model training
         loss, R_squared, validation_loss, training_time, inference_latency = train(model, **config) # determine the loss for each hyperparam configuration
+        
+        # Compare the model performance with the best. If better, update the values 
         if validation_loss < best_performance:
             best_training_loss = loss
             best_validation_loss = validation_loss
@@ -284,43 +322,39 @@ def find_best_nn(grid, performance_indicator = "rmse"):
             best_model_training_time = training_time
             best_model_inference_latency = inference_latency
 
-    save_model(best_model, best_model_hyperparameters, RMSE_loss = best_training_loss, validation_loss = best_training_loss, R_squared=best_R_squared, training_duration=best_model_training_time, inference_latency=best_model_inference_latency) # save the model
+    save_model(best_model, best_model_hyperparameters,
+               RMSE_loss = best_training_loss,
+               validation_loss = best_validation_loss,
+               R_squared=best_R_squared,
+               training_duration=best_model_training_time,
+               inference_latency=best_model_inference_latency,
+               folder_path="./neural_networks/regression/")
     
-        #TODO: now find the best model
-        #TODO: save the best model in a folder
-
-
-#TODO: Complete the training loop so that it iterates through every batch in the dataset for the specified number of epochs,
-# and optimises the model parameters.
-# You should add a step to evaluate the model performance on the validation dataset after each epoch.
-
-#TODO: Use tensorboard to visualize the training curves of the model and the accuracy both on the training and validation set.
 
 if __name__ == "__main__":
     
     dataset_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
-    label="Price_Night"
+    label = "Price_Night"
+
     # initialize an instance of the class which creates a PyTorch dataset
     dataset = AirbnbNightlyPriceRegressionDataset(dataset_path=dataset_path, label=label)
 
     train_loader, validation_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
-
-    batch_size = len(dataset)  # Full batch
-    #dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True) # TODO: what was this here for?
-
-    config = get_nn_config()
-    model = NN(**config)
     
     grid = {
-    "learning_rate": [0.01, 0.001],
-    "depth": [2, 3],
-    "hidden layer width": [8, 16],
-    "batch size": [16, 32],
-    "epochs": [10, 20]
-    }
+        "learning_rate": [0.01, 0.001],
+        "depth": [2, 3],
+        "hidden layer width": [8, 16],
+        "batch size": [16, 32],
+        "epochs": [10, 20]
+        }
 
     find_best_nn(grid=grid)
 
-    #loss, R_squared = train(model, **config) # this is here in case I do not want to use get_nn_config
-
-    #save_model(model, config, RMSE_loss = loss, R_squared=R_squared)   
+    ###########  this block is here in case I do not want to use get_nn_config ########
+    # get the model configuration from
+    # config_file_path='nn_config.yaml'
+    # config = get_nn_config(config_file_path)
+    # model = NN(**config)
+    # loss, R_squared = train(model, **config)
+    # save_model(model, config, RMSE_loss = loss, R_squared=R_squared)   

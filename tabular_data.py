@@ -49,10 +49,6 @@ def clean_tabular_data(df):
         df[['guests', 'beds', 'bathrooms', 'bedrooms']] = df[['guests', 'beds', 'bathrooms', 'bedrooms']].fillna(value=1)
         return df
 
-    # df = remove_rows_with_missing_ratings(df)
-    # df = combine_description_strings(df)
-    # df = set_default_feature_values(df)
-
     functions = [remove_rows_with_missing_ratings,
                  combine_description_strings,
                  set_default_feature_values]
