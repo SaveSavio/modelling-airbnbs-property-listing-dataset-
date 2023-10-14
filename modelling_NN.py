@@ -21,9 +21,14 @@ import yaml
 class AirbnbNightlyPriceRegressionDataset(Dataset):
     """
         Creates a PyTorch dataset from tabular data.
-        On initialization, requires
-            the dataset path (csv file)
-            the index of the label column
+        Parameters:
+            On initialization, requires
+            - the dataset path (csv file)
+            - the index of the label column
+        Returns:
+            two Torch tensor in float precision 
+            - a Tensor with the numerical tabular features of the house
+            - an array of features
     """
     def __init__(self, dataset_path, label):
         super().__init__() # initializes Dataset methods
@@ -40,12 +45,24 @@ class AirbnbNightlyPriceRegressionDataset(Dataset):
 
 
 def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, shuffle=True):    
-    
+    """
+        Dataloader function that
+            - splits the data into test, train and validation datasets
+            - shuffles the data
+        Parameters:
+            - dataset (an instance of Pytorch DataSet class)
+            - train and validation ratios
+            - batch size (for use in the DataLoader)
+            - shuffle (if data shuffling is required)
+
+    It uses full batch for validation and testing.
+    """
+
     # Calculate the number of samples for each split
     dataset_size = len(dataset)
     train_size = int(train_ratio * dataset_size)
     validation_size = int(validation_ratio * dataset_size)
-    test_size = dataset_size - train_size - val_size
+    test_size = dataset_size - train_size - validation_size
 
     # Use random_split to split the dataset
     train_dataset, validation_dataset, test_dataset = random_split(dataset, [train_size, validation_size, test_size])
@@ -236,9 +253,12 @@ def find_best_nn(grid, performance_indicator = "rmse"):
 #TODO: Use tensorboard to visualize the training curves of the model and the accuracy both on the training and validation set.
 
 if __name__ == "__main__":
+    
     dataset_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
     label="Price_Night"
+    # initialize an instance of the class which creates a PyTorch dataset
     dataset = AirbnbNightlyPriceRegressionDataset(dataset_path=dataset_path, label=label)
+
     train_loader, val_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
 
     batch_size = len(dataset)  # Full batch
