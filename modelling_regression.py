@@ -160,10 +160,10 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
         
         # define model naming strategy and saving folder path
         model_filename = 'best_'+model.__name__
-        folder_path = 'models/regression/'+model.__name__+'/'
+        task_folder = 'models/regression/'+model.__name__+'/'
 
         save_model(model, model_filename=model_filename,
-                   folder_path=folder_path, model_info=model_performance)
+                   folder_path=task_folder, model_info=model_performance)
 
 
 def find_best_model(search_directory = './models/regression'):

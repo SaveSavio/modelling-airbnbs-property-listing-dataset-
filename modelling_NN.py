@@ -1,27 +1,34 @@
-from typing import Any
+from datetime import datetime
+import glob
+import itertools
+import json
+import numpy as np
+import os
 import pandas as pd
-from torch.utils.data import Dataset, DataLoader, random_split
+from sklearn.metrics import r2_score
+import time
 import torch
+from torch.utils.data import Dataset, DataLoader, random_split
 from tabular_data import load_airbnb
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
-import yaml
-import json
-import os
-from datetime import datetime
-from sklearn.metrics import r2_score
-import itertools
 import typing
-import glob
-import numpy as np
-import time
+from typing import Any
+import yaml
+
 
 
 class AirbnbNightlyPriceRegressionDataset(Dataset):
-    def __init__(self):
-        super().__init__() # this bit is needed when inheriting so to initialize the parent class methods
-        df = pd.read_csv("./airbnb-property-listings/tabular_data/clean_tabular_data.csv")
-        self.features, self.labels = load_airbnb(df, label="Price_Night", numeric_only=True)
+    """
+        Creates a PyTorch dataset from tabular data.
+        On initialization, requires
+            the dataset path (csv file)
+            the index of the label column
+    """
+    def __init__(self, dataset_path, label):
+        super().__init__() # initializes Dataset methods
+        df = pd.read_csv(dataset_path)
+        self.features, self.labels = load_airbnb(df, label=label, numeric_only=True)
     
     def __getitem__(self, idx):
         features = torch.tensor(self.features.iloc[idx]).float() # simply gets the idx example and transfor it into a torch object
@@ -32,24 +39,23 @@ class AirbnbNightlyPriceRegressionDataset(Dataset):
         return len(self.features)
 
 
-def data_loader(dataset, train_ratio=0.7, val_ratio=0.15, batch_size=32, shuffle=True):    
-    # TODO: confirm batch is necessary, cause I am splitting also train and test sets???
-    dataset_size = len(dataset)
+def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, shuffle=True):    
+    
     # Calculate the number of samples for each split
+    dataset_size = len(dataset)
     train_size = int(train_ratio * dataset_size)
-    val_size = int(val_ratio * dataset_size)
+    validation_size = int(validation_ratio * dataset_size)
     test_size = dataset_size - train_size - val_size
 
     # Use random_split to split the dataset
-    train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
+    train_dataset, validation_dataset, test_dataset = random_split(dataset, [train_size, validation_size, test_size])
 
-    # not so nice to see...
+    # use torch DataLoader on all sets
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
-    val_loader = DataLoader(val_dataset, batch_size=val_size, shuffle=shuffle) # use full batch for validation and testing
-    #TODO: change val to validation
+    validation_loader = DataLoader(validation_dataset, batch_size=validation_size, shuffle=shuffle) # use full batch for validation and testing
     test_loader = DataLoader(test_dataset, batch_size=test_size, shuffle=shuffle)
 
-    return train_loader, val_loader, test_loader
+    return train_loader, validation_loader, test_loader
 
 
 class NN(torch.nn.Module):
@@ -62,10 +68,10 @@ class NN(torch.nn.Module):
                 dept: Depth of the model (number of hidden layers)
                 width: Width of each hidden layer (all hidden layers have the same width)
     """
+
     def __init__(self, input_dim=9, output_dim=1, depth=1, width=9, **kwargs):
         super().__init__()
-        # define layers
-        self.layers = torch.nn.Sequential()
+        self.layers = torch.nn.Sequential() # define layers
         
         # Input layer
         self.layers.add_module("input_layer", torch.nn.Linear(input_dim, width))
@@ -81,8 +87,7 @@ class NN(torch.nn.Module):
 
 
     def forward(self, X):
-        # return prediction
-        return self.layers(X)
+        return self.layers(X) # return prediction
 
 
 def train(model, epochs = 10, optimizer='Adam', **kwargs): ## TODO: consider if we have to pass train_loader to it
@@ -231,7 +236,9 @@ def find_best_nn(grid, performance_indicator = "rmse"):
 #TODO: Use tensorboard to visualize the training curves of the model and the accuracy both on the training and validation set.
 
 if __name__ == "__main__":
-    dataset = AirbnbNightlyPriceRegressionDataset()
+    dataset_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
+    label="Price_Night"
+    dataset = AirbnbNightlyPriceRegressionDataset(dataset_path=dataset_path, label=label)
     train_loader, val_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
 
     batch_size = len(dataset)  # Full batch
