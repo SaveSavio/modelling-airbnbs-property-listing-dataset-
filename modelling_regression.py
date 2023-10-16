@@ -205,7 +205,7 @@ if __name__ == "__main__":
     df = pd.read_csv(data_path)
 
     # define labels and features
-    features, labels =load_airbnb(df, label="Price_Night", numeric_only=True) 
+    features, labels = load_airbnb(df, label="Price_Night", numeric_only=True) 
 
     # features scaling  
     scaler = StandardScaler()  

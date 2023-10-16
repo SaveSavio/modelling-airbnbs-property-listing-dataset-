@@ -49,7 +49,7 @@ The tabular dataset has the following columns:
 - url: The URL of the listing
 - bedrooms: The number of bedrooms in the listing
 
-The code for preparation of tabular data is placed inside <u>tabular_data.py</u>:<br> that, when called, performs the cleaning if called and saves the clean data in clean_tabular_data.csv.
+The code for preparation of tabular data is placed inside <u>tabular_data.py</u>. This file, when called, performs the cleaning if called and saves the clean data in clean_tabular_data.csv.
 
 At first, the 'AirBnbData.csv' file into a pandas dataframe
 ```python
@@ -79,10 +79,10 @@ splits the dataframe into features and labels in order to prepare it for Machine
 Furthermore, if required, can remove all non-numeric values from the dataset.
 
 ## Regression models
-<u>NOTE:</u>:<br>
+<u>NOTE:</u><br>
 This framework works only for numerical variables. If categorical variables are to be used, one-hot-encoding should be performed.
 
-The framework build in <u>modelling.py</u>:<br> allows to systematically compare the performance of regression models.
+The framework build in <u>modelling.py</u> allows to systematically compare the performance of regression models.
 
 The main function is:
 ```python
@@ -90,10 +90,12 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     X_train, X_test, y_train, y_test, random_state = 1)
 ```
 Which is designed to tune the regression model hyperparameters by using sklearn GridSearchCV.
+
 It takes the following paremeters:
 - The model class
 - A dictionary of hyperparameter names mapping to a list of values to be tried
 - The training, validation, and test sets
+
 and returns:
 - the best model
 - a dictionary of its best hyperparameter values
@@ -103,7 +105,7 @@ and returns:
 def custom_tune_regression_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
         X_train, X_validation, X_test, y_train, y_validation, y_test):
 ```
-performs the same task but explicitly performing the model tuning.
+performs the same task but explicitly performing the model tuning without calling GridSearchCV.
 
 The other functions in the file are:
 ```python
@@ -122,8 +124,8 @@ def find_best_model(search_directory = './models/regression'):
 finds the best overall model (i.e. among all the types of models)
 
 ## Classification models
-The same framework as for the regression models, has been build for a classification type example.
-The file <u>modelling_classification.py</u>:<br> contains the same functions and architeture as the regression case, 
+The same framework as above has been build for a classification type example.
+The file <u>modelling_classification.py</u> contains the same functions and architeture as the regression case, 
 but adapted to classification problems.
 
 The validation will accept a validation_accuracy parameter that determines the validation metric
@@ -135,10 +137,10 @@ def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_
 ```
 ## Neural Network Regression
 
-The file <u>modelling_pytorch_Linear.py</u>:<br> is an implementation of Linear Regression using PyTorch framework.
+The file <u>modelling_pytorch_Linear.py</u> is an implementation of Linear Regression using PyTorch framework.
 This "shallow" model is just an intermediate step to the build of a deep learning model.
 
-The file <u>modelling_NN.py</u>:<br> contains the framework to make predictions on the AirBnB database
+The file <u>modelling_NN.py</u> contains the framework to make predictions on the AirBnB database
 with Neural Networks with PyTorch.
 
 ## Neural Network Workflow
@@ -225,3 +227,20 @@ metrics.json file
 ```python
 return loss.item(), R_squared, validation_loss.item(), training_time average_inference_latency
 ```
+
+## Next steps
+This framework is aimed to describe the workflow of Machine Learning. It uses an Occam Razor approach hence starting with simplest Linear Regression model then evolving to Neural Networks.
+
+Main focus is on the training and tuning of models.
+
+1) It should be noticed that no deep EDA was performed on the data. That would be a necessary step to better understand the dataset
+
+1) Clearly some improvements to the accuracy could be made by treating outliers and reducing the skewness of some data.
+
+A deeper use of the provided information:
+
+3) A large chunk of information is discarded by not using the categorical variables. In fact, when predicting the price x night, the listing category would have been useful.
+
+4) A multimodal system that employs the information in the pictures to increase the prediction accuracy
+
+5) A multimodal system that employs the information in the text description

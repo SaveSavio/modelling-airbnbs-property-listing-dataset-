@@ -335,6 +335,8 @@ if __name__ == "__main__":
     
     dataset_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
     label = "Price_Night"
+    label = "beds"
+
 
     # initialize an instance of the class which creates a PyTorch dataset
     dataset = AirbnbNightlyPriceRegressionDataset(dataset_path=dataset_path, label=label)
