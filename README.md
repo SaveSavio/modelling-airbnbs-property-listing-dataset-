@@ -48,32 +48,13 @@ The tabular dataset has the following columns:
 
 The code for preparation of tabular data is placed inside <u>tabular_data.py</u>. This file, when called, performs the cleaning if called and saves the clean data in clean_tabular_data.csv.
 
-At first, the 'AirBnbData.csv' file into a pandas dataframe
-```python
-df = pd.read_csv("./airbnb-property-listings/tabular_data/listing.csv")
-```
-then calling on it:
-```python
-def clean_tabular_data(df)
-```
+Data is read into a Pandas dataframe, then the following actions are performed:
 
-This function takes a the listings in form pandas dataframe as argument and cleanes it by calling three separate functions:
-```python
-def remove_rows_with_missing_ratings(df)
-def combine_description_strings(df)
-def set_default_feature_values(df)
-```
-They, in turn:
 - Remove the rows with missing values in each of the rating columns
 - Combine the list items into the same string
 - Replace the empty rows in the colums "guests", "beds", "bathrooms", "bedrooms" with a default value equal to 1
-
-The function
-```python
-def load_airbnb(df, label="label", numeric_only=False):
-```
-splits the dataframe into features and labels in order to prepare it for Machine Learning.
-Furthermore, if required, can remove all non-numeric values from the dataset.
+- Split the dataframe into features and labels
+- (optional) remove all non-numeric values from the dataset
 
 ## Regression models
 <u>NOTE:</u><br>
