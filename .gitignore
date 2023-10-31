@@ -1,6 +1,5 @@
 airbnb-property-listings/
 models/
-neural_networks/
 runs/
 data_cleaning.ipynb
 modelling.ipynb

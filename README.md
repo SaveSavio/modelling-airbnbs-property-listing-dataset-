@@ -5,23 +5,20 @@ To build a framework to systematically trains, tunes, and evaluates models on se
 
 ## Installation
 Ensure the following dependencies are installed or run the following commands using pip package installer (https://pypi.org/project/pip/):
+  - numpy
+  - pandas
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - glob2
+  - joblib
+  - pytorch
+  - pyyaml
 
+Best option is to create a fresh conda environment:
 ```python
-    pip install # following packages:
-    glob
-    itertools
-    joblib
-    json
-    numpy
-    os
-    pandas
-    typing
-    scikit-learn
-    torch
-    yaml
-    datetime
+conda env create -f environment.yaml
 ```
-The remaining packages are part of Python's standard library, so no additional installation is needed.
 
 ## Data Preparation
 The AirBnb listings data comes in form of:

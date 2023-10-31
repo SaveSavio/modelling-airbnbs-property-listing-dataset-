@@ -1,0 +1,13 @@
+name: airbnb  # Replace with your desired environment name
+channels:
+  - defaults
+dependencies:
+  - numpy
+  - pandas
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - glob2
+  - joblib
+  - pytorch
+  - pyyaml
