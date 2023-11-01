@@ -19,9 +19,9 @@ def clean_tabular_data(df):
         """
         df = df.dropna(subset=['Cleanliness_rating', 'Accuracy_rating', 'Communication_rating', 'Location_rating',
                                'Check-in_rating', 'Value_rating'], axis=0, how='any')
-        
-        df = df.drop(532) # drop a column with wrong cleaness_rating (it seems some values have been swapped)
-
+        print(len(df))
+        df = df[df["Cleanliness_rating"]<=5] # drop a column with wrong rating
+        print(len(df))
         return df
 
     def combine_description_strings(df):

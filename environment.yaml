@@ -1,4 +1,4 @@
-name: airbnb  # Replace with your desired environment name
+name: airbnb
 channels:
   - defaults
 dependencies:
