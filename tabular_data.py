@@ -21,7 +21,6 @@ def clean_tabular_data(df):
                                'Check-in_rating', 'Value_rating'], axis=0, how='any')
         
         df = df[df["Cleanliness_rating"]<=5] # drop a column with wrong rating
-        
         return df
 
     def combine_description_strings(df):
