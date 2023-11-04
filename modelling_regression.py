@@ -81,7 +81,7 @@ def custom_tune_regression_model_hyperparameters(model_class_obj: Type, paramete
 
 
 def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
-    X_train, X_test, y_train, y_test, random_state = 1):
+    X_validation, X_test, y_validation, y_test, random_state = 1):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
@@ -95,7 +95,7 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     """
 
     grid_search = GridSearchCV(mode_class_obj(random_state = random_state), parameters_grid)
-    grid_search.fit(X_train, y_train)
+    grid_search.fit(X_validation, y_validation)
 
     # Get the best hyperparameters and the best model
     best_hyperparams = grid_search.best_params_
