@@ -93,7 +93,6 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
             - a dictionary of its best hyperparameter values
             - a dictionary of its performance metrics.
     """
-
     grid_search = GridSearchCV(mode_class_obj(random_state = random_state), parameters_grid)
     grid_search.fit(X_validation, y_validation)
 
@@ -106,7 +105,7 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     y_pred = best_model.predict(X_test)
 
     # calculate Root Mean Square Error (test loss) and additional metrics
-    rmse = mean_squared_error(y_test, y_pred) 
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     r2 = r2_score(y_test, y_pred) 
     mae = mean_absolute_error(y_test, y_pred)
 
@@ -152,7 +151,6 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
         Returns:
             saves the best model for each class in a folder
     """
-
     for index, model in enumerate(model_list):
         print(model, parameter_grid_list[index])
         model_performance = tune_regression_model_hyperparameters(model, parameter_grid_list[index],
@@ -225,7 +223,7 @@ if __name__ == "__main__":
         {'alpha': [0.0001, 0.001, 0.01, 0.1], # model 1
         'penalty': ['l2', 'l1', 'elasticnet'],
         'loss': ['squared_error', 'huber', 'epsilon_insensitive'],
-        'max_iter': [10**4, 10**5, 10**6]}, 
+        'max_iter': [10**4, 10**5,  10**6]}, 
         {
         'n_estimators': [10, 50, 100], # model 2
         'max_depth': [None, 10, 20, 30],
