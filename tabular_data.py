@@ -2,7 +2,7 @@ import pandas as pd
 
 class database_utils():
     """
-        Cleans the Airbnb dataset before analysis.j
+        Cleans the Airbnb dataset before analysis.
     """
 
     def remove_rows_with_missing_ratings(df):
@@ -131,6 +131,19 @@ class database_utils():
         }        
         df['Geographical_Area'] = df['Location'].str.split().str[-1].map(country_to_area)
         return df
+
+    def reduce_skewness(df):
+        """
+            Performs log trasform on selected data: Price_Night, 
+            Parameters:
+                a pandas dataframe
+            Returns:
+                a pandas dataframe
+        """
+        df["Price_Night_Log"] = df["Price_Night"].map(lambda i: np.log(i) if i > 0 else 0)
+        df = df.drop(columns=["Price_Night"])
+        return df
+
 
     def load_airbnb(df, label="label", numeric_only=False):
         """
