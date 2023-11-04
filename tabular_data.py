@@ -130,6 +130,8 @@ class database_utils():
             'Czechia': 'Europe'
         }        
         df['Geographical_Area'] = df['Location'].str.split().str[-1].map(country_to_area)
+        df['Geographical_Area'] = df['Geographical_Area'].astype('category')
+        df = pd.get_dummies(df, columns=['Geographical_Area'], dtype=int, prefix=['Area'])
         return df
 
     def reduce_skewness(df):
