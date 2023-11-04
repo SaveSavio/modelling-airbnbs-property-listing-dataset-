@@ -141,7 +141,8 @@ class database_utils():
                 a pandas dataframe
         """
         df["Price_Night_Log"] = df["Price_Night"].map(lambda i: np.log(i) if i > 0 else 0)
-        df = df.drop(columns=["Price_Night"])
+        df["guests_Log"] = df["guests"].map(lambda i: np.log(i) if i > 0 else 0)
+        df = df.drop(columns=["Price_Night", "guests"])
         return df
 
 
