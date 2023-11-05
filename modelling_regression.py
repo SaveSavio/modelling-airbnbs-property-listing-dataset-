@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from sklearn.linear_model import SGDRegressor
 from sklearn.preprocessing import StandardScaler
-from tabular_data import load_airbnb
+from tabular_data import database_utils as dbu
 from typing import Type
 
 def grid_generator(parameters_grid: typing.Dict[str, typing.Iterable]):
@@ -81,33 +81,32 @@ def custom_tune_regression_model_hyperparameters(model_class_obj: Type, paramete
 
 
 def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
-    X_validation, X_test, y_validation, y_test, random_state = 1):
+    X_train, X_validation, y_train, y_validation, random_state = 1):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
             - The model class
             - A dictionary of hyperparameter names mapping to a list of values to be tried
-            - The training, validation, and test sets
+            - The training and validation datasets
         Returns:
             - the best model
             - a dictionary of its best hyperparameter values
             - a dictionary of its performance metrics.
     """
-    grid_search = GridSearchCV(mode_class_obj(random_state = random_state), parameters_grid)
-    grid_search.fit(X_validation, y_validation)
+    grid_search = GridSearchCV(mode_class_obj(random_state=random_state), parameters_grid, cv=5)
+    grid_search.fit(X_train, y_train) # grid search on the training set
 
     # Get the best hyperparameters and the best model
     best_hyperparams = grid_search.best_params_
     best_model = grid_search.best_estimator_
 
-    # Train the best model on the test dataset and evaluate performance
-    best_model.fit(X_test, y_test)
-    y_pred = best_model.predict(X_test)
+    # fit and predict on the validation set
+    best_model.fit(X_validation, y_validation)
+    y_pred = best_model.predict(X_validation)
 
-    # calculate Root Mean Square Error (test loss) and additional metrics
-    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    r2 = r2_score(y_test, y_pred) 
-    mae = mean_absolute_error(y_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_validation, y_pred)) # validation loss
+    r2 = r2_score(y_validation, y_pred) # additional metrics
+    mae = mean_absolute_error(y_validation, y_pred)
 
     # create a dictionary containing: best hyperparameters and performance metrics
     model_info = {"best hyperparameters": best_hyperparams, "validation_RMSE": rmse, "R^2": r2, "MAE": mae}
@@ -154,7 +153,7 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
     for index, model in enumerate(model_list):
         print(model, parameter_grid_list[index])
         model_performance = tune_regression_model_hyperparameters(model, parameter_grid_list[index],
-                                                                  X_train, X_test, y_train, y_test)
+                                                                  X_train, X_validation, y_train, y_validation)
         
         # define model naming strategy and saving folder path
         model_filename = 'best_'+model.__name__
@@ -203,11 +202,18 @@ if __name__ == "__main__":
     df = pd.read_csv(data_path)
 
     # define labels and features
-    features, labels = load_airbnb(df, label="Price_Night", numeric_only=True) 
+    features, labels = dbu.load_airbnb(df, label="Price_Night", numeric_only=True) 
+    features.head()
+    features_to_scale = ['guests', 'beds', 'bathrooms', 'Price_Night', 'Cleanliness_rating',
+                         'Accuracy_rating', 'Communication_rating', 'Location_rating',
+                         'Check-in_rating', 'Value_rating', 'amenities_count', 'bedrooms']     
+    features_subset = df[features_to_scale]
 
     # features scaling  
     scaler = StandardScaler()  
     scaled_features = scaler.fit_transform(features) # fit and transform the data
+    features[features_to_scale] = scaled_features
+    features.head()
 
     # split in train, validation, test sets
     X_train, X_test, y_train, y_test = train_test_split(scaled_features, labels, test_size=0.3)
@@ -243,4 +249,4 @@ if __name__ == "__main__":
     evaluate_all_models(model_list, parameter_grid_list, X_train, X_test, y_train, y_test)
     
     # find the best overall model for regression
-    best_model, best_performance, best_hyperparams = find_best_model(earch_directory = './models/regression')
+    best_model, best_performance, best_hyperparams = find_best_model(search_directory = './models/regression')

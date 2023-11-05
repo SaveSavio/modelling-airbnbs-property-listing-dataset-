@@ -1,5 +1,6 @@
 from typing import Any
 import pandas as pd
+import numpy as np
 from torch.utils.data import Dataset, DataLoader, random_split
 import torch
 from tabular_data import load_airbnb
@@ -70,7 +71,6 @@ def train(model, epochs = 100):
             loss.backward() # differentiate the loss
             # mind you it does not overwrite but add to the gradient
             print(loss)
-            # TODO: optimization step
             #print(loss.item())
             optimizer.step()
             optimizer.zero_grad() # this is necessary because of the behaviour of .backward() not overwriting values
