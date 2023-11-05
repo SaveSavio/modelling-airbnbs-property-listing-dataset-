@@ -111,7 +111,7 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     # create a dictionary containing: best hyperparameters and performance metrics
     model_info = {"best hyperparameters": best_hyperparams, "validation_RMSE": rmse, "R^2": r2, "MAE": mae}
     #print(model_info)
-    
+
     return model_info
 
 
@@ -202,12 +202,14 @@ if __name__ == "__main__":
     df = pd.read_csv(data_path)
 
     # define labels and features
-    features, labels = dbu.load_airbnb(df, label="Price_Night", numeric_only=True) 
-    features.head()
+    label = "Price_Night"
+    features, labels = dbu.load_airbnb(df, label=label, numeric_only=True) 
+    features.head() # TODO: does not quite work like this....
     features_to_scale = ['guests', 'beds', 'bathrooms', 'Price_Night', 'Cleanliness_rating',
                          'Accuracy_rating', 'Communication_rating', 'Location_rating',
-                         'Check-in_rating', 'Value_rating', 'amenities_count', 'bedrooms']     
-    features_subset = df[features_to_scale]
+                         'Check-in_rating', 'Value_rating', 'amenities_count', 'bedrooms'] 
+    features_to_scale = features_to_scale.remove(label)    
+    features_subset = features[features_to_scale]
 
     # features scaling  
     scaler = StandardScaler()  
@@ -226,7 +228,7 @@ if __name__ == "__main__":
     
     # grid list of dictonaries for model optimization. Each dictionary for the corresponding model
     parameter_grid_list = [
-        {'alpha': [0.0001, 0.001, 0.01, 0.1], # model 1
+        {'alpha': [0.001, 0.01, 0.1], # model 1
         'penalty': ['l2', 'l1', 'elasticnet'],
         'loss': ['squared_error', 'huber', 'epsilon_insensitive'],
         'max_iter': [10**4, 10**5,  10**6]}, 

@@ -147,7 +147,6 @@ class database_utils():
         df = df.drop(columns=["Price_Night", "guests"])
         return df
 
-
     def load_airbnb(df, label="label", numeric_only=False):
         """
             this function performs two tasks:
