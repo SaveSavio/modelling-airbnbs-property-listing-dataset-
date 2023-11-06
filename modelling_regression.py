@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from sklearn.linear_model import SGDRegressor
 from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeRegressor
 from tabular_data import database_utils as dbu
 from typing import Type
 
@@ -60,7 +61,8 @@ def custom_tune_regression_model_hyperparameters(model_class_obj: Type, paramete
 
     # predicts on the validation dataset and calculates the loss
     y_validation_pred = model.predict(X_validation)
-    validation_loss = mean_squared_error(y_validation, y_validation_pred)
+    # root mean square error
+    validation_loss = np.sqrt(mean_squared_error(y_validation, y_validation_pred))  
 
     print(f"H-Params: {hyperparams} Validation loss: {validation_loss}")
     
@@ -71,7 +73,7 @@ def custom_tune_regression_model_hyperparameters(model_class_obj: Type, paramete
 
     # finally makes a prediction on test data
     y_pred = model.predict(X_test)
-    test_loss = mean_squared_error(y_test, y_pred)
+    test_loss = np.sqrt(mean_squared_error(y_test, y_pred))
     model_performance = {"best model": model_class_obj,
                          "best hyperparameters": best_hyperparams,
                          "validation_RMSE": validation_loss,
@@ -222,7 +224,7 @@ def find_best_model(search_directory = './models/regression'):
 
 if __name__ == "__main__":
     #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
-    data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_transformed.csv"
+    data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
     
     # load the previously cleaned data
     df = pd.read_csv(data_path)
@@ -243,22 +245,33 @@ if __name__ == "__main__":
 
     # list of models to be used for the regression
     model_list = [SGDRegressor, # model 1
-                  RandomForestRegressor, # model 2
-                  GradientBoostingRegressor] # model 3
+                  DecisionTreeRegressor, # model 2
+                  RandomForestRegressor, # model 3
+                  GradientBoostingRegressor] # model 4
     
     # grid list of dictonaries for model optimization. Each dictionary for the corresponding model
     parameter_grid_list = [
-        {'alpha': [0.001, 0.01, 0.1], # model 1
+        {
+        'alpha': [0.001, 0.01, 0.1], # model 1
         'penalty': ['l2', 'l1', 'elasticnet'],
         'loss': ['squared_error', 'huber', 'epsilon_insensitive'],
+        'learning_rate':['constant', 'adaptive'],
+        'eta0': [0.001, 0.01],
         'max_iter': [10**4, 10**5,  10**6]}, 
         {
-        'n_estimators': [10, 50, 100], # model 2
+        'max_depth': [None, 10, 20], # model 2
+        'min_samples_split': [2, 5],
+        'min_samples_leaf': [1, 2],
+        'splitter': ['best', 'random']
+        },
+        {
+        'n_estimators': [10, 50, 100], # model 3
         'max_depth': [None, 10, 20, 30],
         'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4]},
+        'min_samples_leaf': [1, 2, 4]
+        },
         {
-        'n_estimators': [50, 100, 200], # model 3
+        'n_estimators': [50, 100, 200], # model 4
         'learning_rate': [0.01, 0.1, 0.2],
          'max_depth': [10, 20, 30],
          'min_samples_split': [2, 3, 4],
