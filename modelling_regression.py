@@ -80,6 +80,31 @@ def custom_tune_regression_model_hyperparameters(model_class_obj: Type, paramete
     return model_performance
 
 
+def features_scaling(df, columns_to_scale_index, label):
+    """
+        Scales the features dataframe using sklearn.StandardScaler
+        For added flexibility, uses a list of features and the label to determine
+        which column is to be scaled.
+        Parameters:
+            A dataframe
+            A list of features_to_scale
+
+        Returns:
+            a dataframe whose "features_to_scale" are scaled, with exception of "label"
+    """
+    # remove the label from the list, there's no need to rescale it
+    columns_to_scale_index.remove(label)
+    # create the subset of features that need scaling
+    columns_subset = df[columns_to_scale_index]
+
+    scaler = StandardScaler() # features scaling  
+    scaled_columns = scaler.fit_transform(columns_subset) # fit and transform the data
+    # now substitute the scaled features back in the original dataframe
+    df[features_to_scale] = scaled_columns
+    #features.head()
+    return df
+
+
 def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
     X_train, X_validation, y_train, y_validation, random_state = 1):
     """
@@ -208,19 +233,10 @@ if __name__ == "__main__":
     features, labels = dbu.load_airbnb(df, label=label, numeric_only=True)
     # create a list of numerical features
     features_to_scale = ['guests', 'beds', 'bathrooms', 'Price_Night', 'Cleanliness_rating',
-                         'Accuracy_rating', 'Communication_rating', 'Location_rating',
-                         'Check-in_rating', 'Value_rating', 'amenities_count', 'bedrooms'] 
-    # remove the label from the list, there's no need to rescale it
-    features_to_scale.remove(label)
-
-    # create the subset of features that need scaling
-    features_subset = features[features_to_scale]
-
-    scaler = StandardScaler() # features scaling  
-    scaled_features = scaler.fit_transform(features_subset) # fit and transform the data
-     # now substitute the scaled features back in the original dataframe
-    features[features_to_scale] = scaled_features
-    features.head()
+                            'Accuracy_rating', 'Communication_rating', 'Location_rating',
+                            'Check-in_rating', 'Value_rating', 'amenities_count', 'bedrooms']
+    
+    features = features_scaling(features)
 
     # split in train, validation, test sets
     X_train, X_test, y_train, y_test = train_test_split(scaled_features, labels, test_size=0.3)
