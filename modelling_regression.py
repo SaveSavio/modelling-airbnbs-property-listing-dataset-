@@ -196,24 +196,29 @@ def find_best_model(search_directory = './models/regression'):
 
 
 if __name__ == "__main__":
-    data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
+    #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
+    data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_transformed.csv"
+
     
     # load the previously cleaned data
     df = pd.read_csv(data_path)
 
     # define labels and features
-    label = "Price_Night"
-    features, labels = dbu.load_airbnb(df, label=label, numeric_only=True) 
-    features.head() # TODO: does not quite work like this....
+    label = 'Price_Night'
+    features, labels = dbu.load_airbnb(df, label=label, numeric_only=True)
+    # create a list of numerical features
     features_to_scale = ['guests', 'beds', 'bathrooms', 'Price_Night', 'Cleanliness_rating',
                          'Accuracy_rating', 'Communication_rating', 'Location_rating',
                          'Check-in_rating', 'Value_rating', 'amenities_count', 'bedrooms'] 
-    features_to_scale = features_to_scale.remove(label)    
+    # remove the label from the list, there's no need to rescale it
+    features_to_scale.remove(label)
+
+    # create the subset of features that need scaling
     features_subset = features[features_to_scale]
 
-    # features scaling  
-    scaler = StandardScaler()  
-    scaled_features = scaler.fit_transform(features) # fit and transform the data
+    scaler = StandardScaler() # features scaling  
+    scaled_features = scaler.fit_transform(features_subset) # fit and transform the data
+     # now substitute the scaled features back in the original dataframe
     features[features_to_scale] = scaled_features
     features.head()
 
@@ -251,4 +256,4 @@ if __name__ == "__main__":
     evaluate_all_models(model_list, parameter_grid_list, X_train, X_test, y_train, y_test)
     
     # find the best overall model for regression
-    best_model, best_performance, best_hyperparams = find_best_model(search_directory = './models/regression')
+    best_model, best_performance, best_hyperparams = find_best_model(search_directory = './models/regression/')
