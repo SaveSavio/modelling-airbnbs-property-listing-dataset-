@@ -223,7 +223,6 @@ def find_best_model(search_directory = './models/regression'):
 if __name__ == "__main__":
     #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
     data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_transformed.csv"
-
     
     # load the previously cleaned data
     df = pd.read_csv(data_path)
@@ -236,7 +235,7 @@ if __name__ == "__main__":
                             'Accuracy_rating', 'Communication_rating', 'Location_rating',
                             'Check-in_rating', 'Value_rating', 'amenities_count', 'bedrooms']
     
-    features = features_scaling(features)
+    scaled_features = features_scaling(features, features_to_scale, label)
 
     # split in train, validation, test sets
     X_train, X_test, y_train, y_test = train_test_split(scaled_features, labels, test_size=0.3)
