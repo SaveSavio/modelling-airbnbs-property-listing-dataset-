@@ -108,7 +108,7 @@ def features_scaling(df, columns_to_scale_index, label):
 
 
 def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
-    X_train, X_validation, y_train, y_validation, random_state = 1):
+    X_train, X_test, y_train, y_test, random_state = 1):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
@@ -120,23 +120,26 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
             - a dictionary of its best hyperparameter values
             - a dictionary of its performance metrics.
     """
-    grid_search = GridSearchCV(mode_class_obj(random_state=random_state), parameters_grid, cv=5)
+    grid_search = GridSearchCV(mode_class_obj(random_state=random_state), parameters_grid, cv=5,
+                               scoring='neg_root_mean_squared_error')
     grid_search.fit(X_train, y_train) # grid search on the training set
 
     # Get the best hyperparameters and the best model
     best_hyperparams = grid_search.best_params_
     best_model = grid_search.best_estimator_
+    validation_rmse = grid_search.best_score_
 
     # fit and predict on the validation set
-    best_model.fit(X_validation, y_validation)
-    y_pred = best_model.predict(X_validation)
+    best_model.fit(X_test, y_test)
+    y_pred = best_model.predict(X_test)
 
-    rmse = np.sqrt(mean_squared_error(y_validation, y_pred)) # validation loss
-    r2 = r2_score(y_validation, y_pred) # additional metrics
-    mae = mean_absolute_error(y_validation, y_pred)
+    test_rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+     # additional metric
+    r2 = r2_score(y_test, y_pred)
+    mae = mean_absolute_error(y_test, y_pred)
 
     # create a dictionary containing: best hyperparameters and performance metrics
-    model_info = {"best hyperparameters": best_hyperparams, "validation_RMSE": rmse, "R^2": r2, "MAE": mae}
+    model_info = {"best hyperparameters": best_hyperparams, "validation_RMSE": validation_rmse, "test_RMSE": test_rmse, "test_R^2": r2, "test_MAE": mae}
     #print(model_info)
 
     return model_info
@@ -178,9 +181,10 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
             saves the best model for each class in a folder
     """
     for index, model in enumerate(model_list):
-        print(model, parameter_grid_list[index])
-        model_performance = tune_regression_model_hyperparameters(model, parameter_grid_list[index],
-                                                                  X_train, X_validation, y_train, y_validation)
+        print('Estimator: ', model, '/nHyperparameters grid list: ', parameter_grid_list[index])
+
+        model_performance = tune_regression_model_hyperparameters(model,parameter_grid_list[index],
+                                                                  X_train, X_test, y_train, y_test)
         
         # define model naming strategy and saving folder path
         model_filename = 'best_'+model.__name__
@@ -224,8 +228,11 @@ def find_best_model(search_directory = './models/regression'):
 
 if __name__ == "__main__":
     #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
-    data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
-    
+    data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_hot-encoding.csv"
+    # TODO: have to add the test RMSE and compare it to the validation one for overfitting!
+    # TODO: have to add the test RMSE and compare it to the validation one for overfitting!
+    # TODO: have to add the test RMSE and compare it to the validation one for overfitting!
+
     # load the previously cleaned data
     df = pd.read_csv(data_path)
 
@@ -240,14 +247,25 @@ if __name__ == "__main__":
     scaled_features = features_scaling(features, features_to_scale, label)
 
     # split in train, validation, test sets
+    # in the case of GridSearchCV, I will only have the train and test set and the cross validation
+    # is sorted under the hood.
+    # TODO: move this in the README.md
+    # The cv parameter in GridSearchCV is an integer or a cross-validation splitter object.
+    # It determines how many folds or subsets the dataset should be split into for cross-validation.
+    # For example, if you set cv=5, the dataset will be divided into 5 equal parts,
+    # and the hyperparameter tuning process will be performed five times,
+    # with each part serving as the validation set once and the rest as the training set.
     X_train, X_test, y_train, y_test = train_test_split(scaled_features, labels, test_size=0.3)
-    X_validation, X_test, y_validation, y_test = train_test_split(X_test, y_test, test_size=0.5)
+
+    # X_validation, X_test, y_validation, y_test = train_test_split(X_test, y_test, test_size=0.5)
 
     # list of models to be used for the regression
     model_list = [SGDRegressor, # model 1
                   DecisionTreeRegressor, # model 2
                   RandomForestRegressor, # model 3
                   GradientBoostingRegressor] # model 4
+    
+    model_list = [SGDRegressor]
     
     # grid list of dictonaries for model optimization. Each dictionary for the corresponding model
     parameter_grid_list = [
@@ -281,7 +299,7 @@ if __name__ == "__main__":
     
     # evaluate all models in the model list according to the parameters in the grid
     # for each model type, save the best
-    evaluate_all_models(model_list, parameter_grid_list, X_train, X_test, y_train, y_test)
+    evaluate_all_models(model_list, parameter_grid_list, X_train, X_validation, X_test, y_train, y_test, y_validation)
     
     # find the best overall model for regression
     best_model, best_performance, best_hyperparams = find_best_model(search_directory = './models/regression/')
