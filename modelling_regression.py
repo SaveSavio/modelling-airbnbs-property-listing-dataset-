@@ -121,26 +121,30 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
             - a dictionary of its performance metrics.
     """
     grid_search = GridSearchCV(mode_class_obj(random_state=random_state), parameters_grid, cv=5,
-                               scoring='neg_root_mean_squared_error')
+                               scoring='neg_root_mean_squared_error', verbose=0)
     grid_search.fit(X_train, y_train) # grid search on the training set
 
     # Get the best hyperparameters and the best model
     best_hyperparams = grid_search.best_params_
     best_model = grid_search.best_estimator_
-    validation_rmse = grid_search.best_score_
+    validation_rmse = -grid_search.best_score_
 
     # fit and predict on the validation set
     best_model.fit(X_test, y_test)
     y_pred = best_model.predict(X_test)
 
     test_rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-     # additional metric
+     # additional metrics
     r2 = r2_score(y_test, y_pred)
     mae = mean_absolute_error(y_test, y_pred)
 
     # create a dictionary containing: best hyperparameters and performance metrics
-    model_info = {"best hyperparameters": best_hyperparams, "validation_RMSE": validation_rmse, "test_RMSE": test_rmse, "test_R^2": r2, "test_MAE": mae}
-    #print(model_info)
+    model_info = {"best hyperparameters": best_hyperparams,
+                  "validation_RMSE": validation_rmse,
+                  "test_RMSE": test_rmse,
+                  "test_R^2": r2,
+                  "test_MAE": mae}
+    print("model info: ", model_info)
 
     return model_info
 
@@ -181,7 +185,7 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
             saves the best model for each class in a folder
     """
     for index, model in enumerate(model_list):
-        print('Estimator: ', model, '/nHyperparameters grid list: ', parameter_grid_list[index])
+        print('Estimator: ', model, '\nHyperparameters grid list: ', parameter_grid_list[index])
 
         model_performance = tune_regression_model_hyperparameters(model,parameter_grid_list[index],
                                                                   X_train, X_test, y_train, y_test)
@@ -216,22 +220,23 @@ def find_best_model(search_directory = './models/regression'):
                 if data['validation_RMSE'] < min_rmse:
                     min_rmse = data['validation_RMSE']
                     best_model = json_file[:-4] + 'pkl'
-                    best_performance = data.get('validation_RMSE')
+                    validation_rmse = data.get('validation_RMSE')
+                    test_rmse = data.get('test_RMSE')
+                    best_performance = [validation_rmse, test_rmse]
                     best_hyperparameters = data.get('best hyperparameters')
     
     # loads the model
     best_model = joblib.load(best_model)
-    print("Best model loaded: ", best_model, "\nValidation RMSE: ", best_performance, 
-        "\nHyper-parameters: ", best_hyperparameters)
+    print("Best model loaded: ", best_model,
+          "\nValidation RMSE: ", validation_rmse, 
+          "\nTest RMSE: ", test_rmse, # TODO: it's not printing this
+          "\nHyper-parameters: ", best_hyperparameters)
     return best_model, best_performance, best_hyperparameters
 
 
 if __name__ == "__main__":
-    #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
-    data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_hot-encoding.csv"
-    # TODO: have to add the test RMSE and compare it to the validation one for overfitting!
-    # TODO: have to add the test RMSE and compare it to the validation one for overfitting!
-    # TODO: have to add the test RMSE and compare it to the validation one for overfitting!
+    data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
+    #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_hot-encoding.csv"
 
     # load the previously cleaned data
     df = pd.read_csv(data_path)
@@ -265,7 +270,7 @@ if __name__ == "__main__":
                   RandomForestRegressor, # model 3
                   GradientBoostingRegressor] # model 4
     
-    model_list = [SGDRegressor]
+    #model_list = [SGDRegressor]
     
     # grid list of dictonaries for model optimization. Each dictionary for the corresponding model
     parameter_grid_list = [
@@ -299,7 +304,7 @@ if __name__ == "__main__":
     
     # evaluate all models in the model list according to the parameters in the grid
     # for each model type, save the best
-    evaluate_all_models(model_list, parameter_grid_list, X_train, X_validation, X_test, y_train, y_test, y_validation)
+    evaluate_all_models(model_list, parameter_grid_list, X_train, X_test, y_train, y_test)
     
     # find the best overall model for regression
     best_model, best_performance, best_hyperparams = find_best_model(search_directory = './models/regression/')
