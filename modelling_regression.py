@@ -134,9 +134,16 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     y_pred = best_model.predict(X_test)
 
     test_rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-     # additional metrics
+    #test_rmse = np.sqrt(mean_squared_error(np.exp(y_test), np.exp(y_pred)))
+    
+    # additional metrics
     r2 = r2_score(y_test, y_pred)
     mae = mean_absolute_error(y_test, y_pred)
+
+    # create a pandas dataframe to check the prediction later
+    data = {'y_pred': y_pred, 'y_test': y_test}
+    df = pd.DataFrame(data)
+    df.to_csv('test.csv')
 
     # create a dictionary containing: best hyperparameters and performance metrics
     model_info = {"best hyperparameters": best_hyperparams,
@@ -235,8 +242,10 @@ def find_best_model(search_directory = './models/regression'):
 
 
 if __name__ == "__main__":
-    data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
-    #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_hot-encoding.csv"
+    #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
+    data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv"
+    # data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_skewness_red.csv"
+
 
     # load the previously cleaned data
     df = pd.read_csv(data_path)

@@ -144,8 +144,9 @@ class database_utils():
                 a pandas dataframe
         """
         df["Price_Night_Log"] = df["Price_Night"].map(lambda i: np.log(i) if i > 0 else 0)
-        df["guests_Log"] = df["guests"].map(lambda i: np.log(i) if i > 0 else 0)
-        df = df.drop(columns=["Price_Night", "guests"])
+        # df["guests_Log"] = df["guests"].map(lambda i: np.log(i) if i > 0 else 0)
+        df = df.drop(columns=["Price_Night"])
+        # df = df.drop(columns=["Price_Night", "guests"])
         return df
 
     def load_airbnb(df, label="label", numeric_only=False):
@@ -174,6 +175,9 @@ if __name__ == "__main__":
     df_clean = database_utils.set_default_feature_values(df_clean)
     df_clean.to_csv("./airbnb-property-listings/tabular_data/clean_tabular_data.csv")
     
-    df_clean_transformed = database_utils.category_one_hot_encoding(df_clean)
-    df_clean_transformed = database_utils.location_one_hot_encoding(df_clean_transformed)
-    df_clean_transformed.to_csv("./airbnb-property-listings/tabular_data/clean_tabular_data_transformed.csv")
+    df_clean_one_hot_encoding = database_utils.category_one_hot_encoding(df_clean)
+    df_clean_one_hot_encoding = database_utils.location_one_hot_encoding(df_clean_one_hot_encoding)
+    df_clean_one_hot_encoding.to_csv("./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv")
+
+    df_clean_one_hot_encoding_reduce_skew = database_utils.reduce_skewness(df_clean_one_hot_encoding)
+    df_clean_one_hot_encoding_reduce_skew.to_csv("./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_skewness_red.csv")
