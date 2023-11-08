@@ -15,10 +15,17 @@ Ensure the following dependencies are installed or run the following commands us
   - pytorch
   - pyyaml
 
-Best option is to create a fresh conda environment:
+Best option is to create a fresh conda environment using environment.yaml:
 ```python
 conda env create -f environment.yaml
 ```
+## Exploratory Data Analysis
+On the data, cleaned according to the project requirements, a simple EDA was performed so to understand the key features in the distribution of data. The main purposes are:
+1) to better understand the dataset and stimulate curiosity
+1) to improve predictions by either regression, classification or neural networks.
+
+The results can be read directly on the Jupyter Notebook <u>exploratory_data_analysis.ipynb</u>
+
 
 ## Data Preparation
 The AirBnb listings data comes in form of:
@@ -54,20 +61,15 @@ Data is read into a Pandas dataframe, then the following actions are performed:
 - Combine the list items into the same string
 - Replace the empty rows in the colums "guests", "beds", "bathrooms", "bedrooms" with a default value equal to 1
 - Split the dataframe into features and labels
+- one-hot-encode the "Category" variable
+- one-hot-encode the "Location" variable after extracting the Country and grouping them by Geographical Area
 - (optional) remove all non-numeric values from the dataset
 
 ## Regression models
 <u>NOTE:</u><br>
-This framework works only for numerical variables. If categorical variables are to be used, one-hot-encoding should be performed.
+The framework code is contained in <u>modelling.py</u> allows to systematically compare the performance of regression models.
 
-The framework build in <u>modelling.py</u> allows to systematically compare the performance of regression models.
-
-The main function is:
-```python
-def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
-    X_train, X_test, y_train, y_test, random_state = 1)
-```
-Which is designed to tune the regression model hyperparameters by using sklearn GridSearchCV.
+The main function is tune_regression_model_hyperparameters which is designed to tune the regression model hyperparameters by using sklearn GridSearchCV.
 
 It takes the following paremeters:
 - The model class
@@ -79,27 +81,38 @@ and returns:
 - a dictionary of its best hyperparameter values
 - a dictionary of its performance metrics.
 
-```python
-def custom_tune_regression_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
-        X_train, X_validation, X_test, y_train, y_validation, y_test):
-```
-performs the same task but explicitly performing the model tuning without calling GridSearchCV.
+Optionally, it is possible to use a custom_tune_regression_model_hyperparameters that performs the same task but explicitly performing the model tuning without calling GridSearchCV.
 
-The other functions in the file are:
+### Regression models: results
+Four estimators were tested.
 ```python
-def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X_test, y_train, y_test):
+model_list = [SGDRegressor, # model 1
+                  DecisionTreeRegressor, # model 2
+                  RandomForestRegressor, # model 3
+                  GradientBoostingRegressor] # model 4
 ```
- that evaluates the models provided in a list, alongside a list of parameters grids (one for each model)
+For each estimator, a hyperparamters grid was set and evaluated with a "brute force" method. The best models are saved in the repository folder structure, under the regression folder.
 
-```python
-def save_model(model, model_filename: str, folder_path: str, model_info: dict):
-```
-saves the best model for each type (or model class, e.g. SGDRegressor, RandomForestRegressor etc)
+1) None of the models is affected by overfitting. In fact, the RMSE on the validation set is not smaller than the one calculated on the test set.
+1) Ranked from best to worst, based on the score on the test set:
 
-```python
-def find_best_model(search_directory = './models/regression'):
-```
-finds the best overall model (i.e. among all the types of models)
+
+| Estimator | Validation RMSE | Test RMS | Test R^2 | Test MAE |
+|----------|----------|----------|----------|----------|
+| SDGRegressor | 91.96 | 97.53 | 0.4389 | 65.05 |
+| DecisionTreeRegressor | 54.96 | 64.66 | 0.75 | 42.93 |
+| RandomForestRegressor | 55.19 | 56.03 | 0.81 | 36.26 |
+| GradientBoostingRegressor | 49.99 | 48.63 | 0.86 |  31.67 |
+
+- The linear SGDRegressor is the baseline for our evaluation:
+  - has a test RMSE of >90$
+  - R^2 is 0.43 meaning that only 43% of the Price/Night variance is explained by this model.
+- The other 3 models perform relatively close, with DecisionTreeRegressor showing a certain level of overfitting
+(test RMSE > validation RMSE), RandomForestRegressor improves the performance of DecisionTree as expected whilst 
+- Gradient Boosting shows:
+  - the best validation and test RMSE
+  - no overfitting
+  - R^2 of 0.86
 
 ## Classification models
 The same framework as above has been build for a classification type example.

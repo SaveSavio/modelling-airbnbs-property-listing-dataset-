@@ -127,15 +127,15 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     # Get the best hyperparameters and the best model
     best_hyperparams = grid_search.best_params_
     best_model = grid_search.best_estimator_
-    validation_rmse = -grid_search.best_score_
+    #validation_rmse = -grid_search.best_score_
+    y_pred = best_model.predict(X_train)
+    validation_rmse = np.sqrt(mean_squared_error(y_train, y_pred))
 
     # fit and predict on the validation set
     best_model.fit(X_test, y_test)
     y_pred = best_model.predict(X_test)
-
     test_rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-    #test_rmse = np.sqrt(mean_squared_error(np.exp(y_test), np.exp(y_pred)))
-    
+
     # additional metrics
     r2 = r2_score(y_test, y_pred)
     mae = mean_absolute_error(y_test, y_pred)
@@ -279,7 +279,7 @@ if __name__ == "__main__":
                   RandomForestRegressor, # model 3
                   GradientBoostingRegressor] # model 4
     
-    #model_list = [SGDRegressor]
+    #model_list = [GradientBoostingRegressor]
     
     # grid list of dictonaries for model optimization. Each dictionary for the corresponding model
     parameter_grid_list = [

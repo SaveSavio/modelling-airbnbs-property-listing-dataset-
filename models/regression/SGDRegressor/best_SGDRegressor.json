@@ -1,1 +1,1 @@
-{"best hyperparameters": {"alpha": 0.01, "eta0": 0.001, "learning_rate": "adaptive", "loss": "squared_error", "max_iter": 10000, "penalty": "l2"}, "validation_RMSE": 97.64829322707507, "test_RMSE": 90.2217526477957, "test_R^2": 0.43085261800473196, "test_MAE": 56.741587009331695}
+{"best hyperparameters": {"alpha": 0.1, "eta0": 0.001, "learning_rate": "adaptive", "loss": "squared_error", "max_iter": 10000, "penalty": "elasticnet"}, "validation_RMSE": 91.96043895682787, "test_RMSE": 97.53919560124181, "test_R^2": 0.4389883710303, "test_MAE": 65.0567605803164}
