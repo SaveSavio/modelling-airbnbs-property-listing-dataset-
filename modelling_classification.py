@@ -7,17 +7,42 @@ import os
 import pandas as pd
 import typing
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import precision_score, recall_score, accuracy_score, confusion_matrix
+from sklearn.metrics import precision_score, recall_score, accuracy_score, f1_score, confusion_matrix
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
-from tabular_data import load_airbnb
+from tabular_data import database_utils as dbu
 from typing import Type
+
+def features_scaling(df, columns_to_scale_index, label):
+    """
+        Scales the features dataframe using sklearn.StandardScaler
+        For added flexibility, uses a list of features and the label to determine
+        which column is to be scaled.
+        Parameters:
+            A dataframe
+            A list of features_to_scale
+
+        Returns:
+            a dataframe whose "features_to_scale" are scaled, with exception of "label"
+    """
+    # remove the label from the list, there's no need to rescale it
+    #columns_to_scale_index.remove(label)
+    # create the subset of features that need scaling
+    columns_subset = df[columns_to_scale_index]
+
+    scaler = StandardScaler() # features scaling  
+    scaled_columns = scaler.fit_transform(columns_subset) # fit and transform the data
+    # now substitute the scaled features back in the original dataframe
+    df[features_to_scale] = scaled_columns
+    #features.head()
+    return df
 
 
 def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
                                               X_train, X_test, y_train, y_test,
-                                              validation_accuracy="accuracy", random_state = 1):
+                                              validation_accuracy="accuracy", random_state=1):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
@@ -30,7 +55,8 @@ def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_
             - a dictionary of its performance metrics.
     """
 
-    grid_search = GridSearchCV(model_class_obj(random_state=random_state), param_grid=parameters_grid,
+    grid_search = GridSearchCV(model_class_obj(random_state=random_state),
+                               param_grid=parameters_grid,
                                scoring=validation_accuracy, cv=5, n_jobs=-1)
 
     grid_search.fit(X_train, y_train)
@@ -39,24 +65,33 @@ def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_
     best_hyperparams = grid_search.best_params_
     best_model = grid_search.best_estimator_
 
+    # validation accuracy
+    # Train the best model on the test dataset and evaluate performance
+    best_model.fit(X_train, y_train)
+    y_pred = best_model.predict(X_train)
+    validation_accuracy = accuracy_score(y_pred, y_train)
+
     # Train the best model on the test dataset and evaluate performance
     best_model.fit(X_test, y_test)
     y_pred = best_model.predict(X_test)
 
     # calculate performance metrics
-    precision = precision_score(y_test, y_pred, average=None)
-    recall = recall_score(y_test, y_pred, average=None)
-    accuracy = accuracy_score(y_test, y_pred)
-    #conf_matrix = confusion_matrix(y_test, y_pred) # not sure how to save it to a dict
+    test_precision = precision_score(y_test, y_pred, average=None)
+    test_recall = recall_score(y_test, y_pred, average=None)
+    test_accuracy = accuracy_score(y_test, y_pred)
+    #test_f1 = f1_score(y_test, y_pred)
 
     # change these types from ndarray to list for saving to json
-    precision = list(precision)
-    recall = list(recall)
+    test_precision = list(test_precision)
+    test_recall = list(test_recall)
 
 
     # create a dictionary containing: best hyperparameters and performance metrics
-    model_info = {"best hyperparameters": best_hyperparams, "Precision": precision,
-                  "Recall": recall, "Accuracy": accuracy}
+    model_info = {"best hyperparameters": best_hyperparams,
+                  "Validation Accuracy ": validation_accuracy,
+                  "Test Accuracy": test_accuracy,
+                  "Test Precision": test_precision,
+                  "Test Recall": test_recall}
 
     return model_info
 
@@ -105,13 +140,13 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
         
         # define model naming strategy and saving folder path
         model_filename = 'best_'+model.__name__
-        task_folder = 'models/classification/logistic_regression/'+model.__name__+'/'
+        task_folder = 'models/classification/'+model.__name__+'/'
 
         save_model(model, model_filename=model_filename,
                    folder_path=task_folder, model_info=model_performance)
 
 
-def find_best_model(search_directory = './models/classification/logistic_regression'):
+def find_best_model(search_directory = './models/classification'):
     """
         Finds the best model amongst those in a folder path by comparing their rmse (evaluation metric)
         Returns:
@@ -133,12 +168,15 @@ def find_best_model(search_directory = './models/classification/logistic_regress
                 if data['Accuracy'] > max_accuracy:
                     max_accuracy = data['Accuracy']
                     best_model = json_file[:-4] + 'pkl'
-                    best_performance = data.get('Accuracy')
+                    best_validation_accuracy = data.get('Validation Accuracy')
+                    best_test_accuracy = data.get('Test Accuracy')
                     best_hyperparameters = data.get('best hyperparameters')
     
     # loads the model
     best_model = joblib.load(best_model)
-    print("Best model loaded: ", best_model, "\nValidation accuracy: ", best_performance, 
+    print("Best model loaded: ", best_model,
+          "\nValidation accuracy: ", best_validation_accuracy,
+          "\nTest accuracy: ", best_test_accuracy, 
         "\nHyper-parameters: ", best_hyperparameters)
     return best_model, best_performance, best_hyperparameters
 
@@ -150,40 +188,55 @@ if __name__ == "__main__":
     df = pd.read_csv(data_path)
     
     # define labels and features
-    features, labels = load_airbnb(df, label="Category", numeric_only=True)
+    label = "Category"
+    features, labels = dbu.load_airbnb(df, label=label, numeric_only=True)
+    features.head()
+    labels.head()
+    # create a list of numerical features
+    features_to_scale = ['guests', 'beds', 'bathrooms', 'Price_Night', 'Cleanliness_rating',
+                            'Accuracy_rating', 'Communication_rating', 'Location_rating',
+                            'Check-in_rating', 'Value_rating', 'amenities_count', 'bedrooms']
 
-    # features scaling  
-    scaler = StandardScaler()
-    scaled_features = scaler.fit_transform(features) # Fit and transform the data
+    scaled_features = features_scaling(features, features_to_scale, label)
 
     # split in train, validation, test sets
-    X_train, X_test, y_train, y_test = train_test_split(scaled_features, labels, test_size=0.3)
-    X_validation, X_test, y_validation, y_test = train_test_split(X_test, y_test, test_size=0.5)
+    X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.3)
+    #X_validation, X_test, y_validation, y_test = train_test_split(X_test, y_test, test_size=0.5)
 
     model_list = [LogisticRegression, # model 1
                   RandomForestClassifier, # model 2
-                  GradientBoostingClassifier] # model 3
-    
+                  GradientBoostingClassifier, # model 3
+                  DecisionTreeClassifier] # model 4
+
+    #model_list = [LogisticRegression] # model 1
+
+
     param_grid_list = [
                 { # model 1
                 'penalty': ['l1', 'l2'],            # Regularization type ('l1' for L1, 'l2' for L2)
-                'C': [0.001, 0.01, 0.1, 1.0, 10.0], # Inverse of regularization strength
+                'C': [0.001, 0.01, 0.1, 1.0, 10], # Inverse of regularization strength
                 'solver': ['liblinear', 'saga'],    # Solver algorithms (suitable for small to medium datasets)
-                'max_iter': [100, 200, 300],        # Maximum number of iterations for solver convergence
-                'class_weight': [None, 'balanced'], # Class weight ('balanced' adjusts weights based on class distribution)
+                'max_iter': [10**3, 10**4]        # Maximum number of iterations for solver convergence]
                 },
                 { # model 2
-                'n_estimators': [10, 50, 100],         # Number of trees in the forest
+                'n_estimators': [10, 100, 500],         # Number of trees in the forest
                 'max_depth': [None, 10, 20, 30],      # Maximum depth of the trees
                 'min_samples_split': [2, 5, 10],      # Minimum number of samples required to split a node
                 'min_samples_leaf': [1, 2, 4],        # Minimum number of samples required at each leaf node
                 'class_weight': [None, 'balanced']
                 },
                 { # model 3
-                'n_estimators': [50, 100, 200],       # Number of boosting stages to be used
+                'n_estimators': [10, 100, 500],       # Number of boosting stages to be used
                 'learning_rate': [0.01, 0.1, 0.2],   # Step size shrinkage used to prevent overfitting
                 'max_depth': [3, 4, 5],              # Maximum depth of the individual trees
                 'subsample': [0.8, 0.9, 1.0]
+                },
+                { # model 4
+                'criterion': ['gini', 'entropy'],
+                'splitter': ['best', 'random'],
+                'max_depth': [None, 10, 20, 30],
+                'min_samples_split': [2, 5, 10],
+                'min_samples_leaf': [1, 2, 4]
                 }
                 ]
 
