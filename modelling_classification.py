@@ -9,7 +9,7 @@ import typing
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import precision_score, recall_score, accuracy_score, f1_score, confusion_matrix
+from sklearn.metrics import precision_score, recall_score, accuracy_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from tabular_data import database_utils as dbu
