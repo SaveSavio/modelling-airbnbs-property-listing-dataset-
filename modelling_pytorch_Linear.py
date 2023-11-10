@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from torch.utils.data import Dataset, DataLoader, random_split
 import torch
-from tabular_data import load_airbnb
+from tabular_data import database_utils as dbu
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 import yaml
@@ -12,8 +12,8 @@ import yaml
 class AirbnbNightlyPriceRegressionDataset(Dataset):
     def __init__(self):
         super().__init__() # this bit is needed when inheriting so to initialize the parent class methods
-        df = pd.read_csv("./airbnb-property-listings/tabular_data/clean_tabular_data.csv")
-        self.features, self.labels = load_airbnb(df, label="Price_Night", numeric_only=True)
+        df = pd.read_csv("./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv")
+        self.features, self.labels = dbu.load_airbnb(df, label="Price_Night", numeric_only=True)
     
     def __getitem__(self, idx):
         features = torch.tensor(self.features.iloc[idx]).float() # simply gets the idx example and transfor it into a torch object
@@ -36,8 +36,8 @@ def data_loader(dataset, train_ratio=0.7, val_ratio=0.15, batch_size=32, shuffle
 
     # not so nice to see...
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=shuffle)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=shuffle)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     return train_loader, val_loader, test_loader
 
@@ -47,15 +47,15 @@ class LinearRegression(torch.nn.Module):
     """
     def __init__(self):
         super().__init__() 
-        self.linear_layer = torch.nn.Linear(9, 1)
+        self.linear_layer = torch.nn.Linear(23, 1)
 
     def forward(self, features):
         return self.linear_layer(features)
 
 
-def train(model, epochs = 100):
+def train(model, epochs = 10):
     
-    optimizer = torch.optim.Adam(params=model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(params=model.parameters(), lr=0.01)
     # torch provides model parameters throught the .parameters() method
     # this is inherited from the torch class
 
@@ -70,12 +70,12 @@ def train(model, epochs = 100):
             # now we need to take an optimization step by
             loss.backward() # differentiate the loss
             # mind you it does not overwrite but add to the gradient
-            print(loss)
+            #print(loss)
             #print(loss.item())
             optimizer.step()
             optimizer.zero_grad() # this is necessary because of the behaviour of .backward() not overwriting values
 
-            writer.add_scalar('loss', loss.item(), batch_idx) # cannot used the batch index because it resets every epoch
+            writer.add_scalar('loss = RMSE', np.sqrt(loss.item()), batch_idx) # cannot used the batch index because it resets every epoch
             batch_idx += 1
 
 model = LinearRegression()

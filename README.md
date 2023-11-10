@@ -83,15 +83,17 @@ and returns:
 
 Optionally, it is possible to use a custom_tune_regression_model_hyperparameters that performs the same task but explicitly performing the model tuning without calling GridSearchCV.
 
-### Regression models: results
-Four estimators were tested.
+### Regression models: performance
+We have tested the capability of different regressors in predicting the "Price_Night" feature. For more information on the feature, please refer to the Exploratory Data Analysis Jupyter notebook.
+
+Four estimators from the sklearn libraries were tested.
 ```python
 model_list = [SGDRegressor, # model 1
                   DecisionTreeRegressor, # model 2
                   RandomForestRegressor, # model 3
                   GradientBoostingRegressor] # model 4
 ```
-For each estimator, a hyperparamters grid was set and evaluated with a "brute force" method. The best models are saved in the repository folder structure, under the regression folder.
+For each estimator, a hyperparameters grid was set and evaluated with a "brute force" method. The best models are saved in the repository folder structure, under the regression folder.
 
 1) None of the models is affected by overfitting. In fact, the RMSE on the validation set is not smaller than the one calculated on the test set.
 1) Ranked from best to worst, based on the score on the test set:
@@ -115,17 +117,31 @@ For each estimator, a hyperparamters grid was set and evaluated with a "brute fo
   - R^2 of 0.86
 
 ## Classification models
-The same framework as above has been build for a classification type example.
-The file <u>modelling_classification.py</u> contains the same functions and architeture as the regression case, 
-but adapted to classification problems.
+A framework analogous to regression - contained in <u>modelling_classification.py</u> - has been developed for a classification scenario.
 
-The validation will accept a validation_accuracy parameter that determines the validation metric
-and that is passed to GridSearchCV.
+### Classification models: performance
+Four estimators from the sklearn libraries were tested:
 ```python
-def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
-                                              X_train, X_test, y_train, y_test,
-                                              validation_accuracy="accuracy", random_state = 1):
+model_list = [LogisticRegression, # model 1
+                  RandomForestClassifier, # model 2
+                  GradientBoostingClassifier, # model 3
+                  DecisionTreeClassifier] # model 4
 ```
+The chosen Key Performance Indicator is 'Accuracy':
+$$
+\text{Accuracy} = \frac{\text{Number of Correct Predictions}}{\text{Total Number of Predictions}} \
+$$
+
+Results in the table below
+| Estimator | Validation Accuracy | Test Accuracy | 
+|----------|----------|----------|
+| LogisticRegression | 0.43 | 0.36 |
+| RandomForestClassifier | 0.79 | 0.84 |
+| GradientBoostingClassifier | 0.76 | 0.92 |
+| DecisionTreeClassifier | 0.59 | 0.60 |
+
+The Logistic Regressor is our baseline model for simplicity and for performance. It also shows a certain a tendency to overfit. The Gradient Boosting and the Random Forest regressor outperform the other model giving an accuracy close to 0.9.
+
 ## Neural Network Regression
 
 The file <u>modelling_pytorch_Linear.py</u> is an implementation of Linear Regression using PyTorch framework.

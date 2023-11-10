@@ -9,9 +9,9 @@ from sklearn.metrics import r2_score
 import time
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
-from tabular_data import load_airbnb
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
+from tabular_data import database_utils as dbu
 import typing
 from typing import Any
 import yaml
@@ -32,7 +32,7 @@ class AirbnbNightlyPriceRegressionDataset(Dataset):
     def __init__(self, dataset_path, label):
         super().__init__() # initializes Dataset methods
         df = pd.read_csv(dataset_path)
-        self.features, self.labels = load_airbnb(df, label=label, numeric_only=True)
+        self.features, self.labels = dbu.load_airbnb(df, label=label, numeric_only=True)
     
     def __getitem__(self, idx):
         features = torch.tensor(self.features.iloc[idx]).float() # simply gets the idx example and transfor it into a torch object
@@ -69,8 +69,9 @@ def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, 
 
     # use torch DataLoader on all sets
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
-    validation_loader = DataLoader(validation_dataset, batch_size=validation_size, shuffle=shuffle) # use full batch for validation and testing
-    test_loader = DataLoader(test_dataset, batch_size=test_size, shuffle=shuffle)
+    # use full batch for validation and testing
+    validation_loader = DataLoader(validation_dataset, batch_size=validation_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=test_size, shuffle=False)
 
     return train_loader, validation_loader, test_loader
 
@@ -156,7 +157,7 @@ def train(model, epochs = 10, optimizer='Adam', **kwargs):
             
             # forward step and loss calculation
             prediction = model(features)
-            loss = F.mse_loss(prediction, labels)
+            loss = np.sqrt(F.mse_loss(prediction, labels))
 
             # loss differentiation (backward step)
             loss.backward()
@@ -188,8 +189,8 @@ def train(model, epochs = 10, optimizer='Adam', **kwargs):
             inference_stop_time = time.time()
             cumulative_inference_latency += inference_stop_time - inference_start_time
             
-            validation_loss = F.mse_loss(prediction, labels)
-            print("validation mse: ", validation_loss.item())
+            validation_loss = np.sqrt(F.mse_loss(prediction, labels))
+            print("validation rmse: ", validation_loss.item())
             
             # TensorFlow writer: add the validation loss and increase the index
             writer.add_scalar('validation loss', validation_loss.item(), epoch) # TensorFlow
@@ -333,22 +334,30 @@ def find_best_nn(grid, performance_indicator = "rmse"):
 
 if __name__ == "__main__":
     
-    dataset_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
+    dataset_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv"
     label = "Price_Night"
-    label = "beds"
-
 
     # initialize an instance of the class which creates a PyTorch dataset
     dataset = AirbnbNightlyPriceRegressionDataset(dataset_path=dataset_path, label=label)
-
+    
     train_loader, validation_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
     
     grid = {
+        "input_dim": [len(dataset[0][0])],
         "learning_rate": [0.01, 0.001],
         "depth": [2, 3],
         "hidden layer width": [8, 16],
         "batch size": [16, 32],
         "epochs": [10, 20]
+        }
+    
+    grid = {
+        "input_dim": [len(dataset[0][0])],
+        "learning_rate": [0.01, 0.001],
+        "depth": [3],
+        "hidden layer width": [16],
+        #"batch size": [16, 32],
+        "epochs": [100]
         }
 
     find_best_nn(grid=grid)
