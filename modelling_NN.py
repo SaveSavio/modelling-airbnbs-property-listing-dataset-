@@ -9,6 +9,7 @@ from sklearn.metrics import r2_score
 import time
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
+from torchmetrics import R2Score
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 from tabular_data import database_utils as dbu
@@ -70,8 +71,8 @@ def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, 
     # use torch DataLoader on all sets
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
     # use full batch for validation and testing
-    validation_loader = DataLoader(validation_dataset, batch_size=validation_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=test_size, shuffle=False)
+    validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     return train_loader, validation_loader, test_loader
 
@@ -89,22 +90,22 @@ class NN(torch.nn.Module):
                 when called on a set of features, returns a prediction (forward pass)
     """
 
-    def __init__(self, input_dim=9, output_dim=1, depth=1, width=9, **kwargs): # TODO: confirm **kwargs necessity
+    def __init__(self, input_dim=9, output_dim=1, depth=1, inner_width=9, **kwargs): # TODO: confirm **kwargs necessity
         
         super().__init__()
         self.layers = torch.nn.Sequential() # define layers
         
         # Input layer
-        self.layers.add_module("input_layer", torch.nn.Linear(input_dim, width))
+        self.layers.add_module("input_layer", torch.nn.Linear(input_dim, inner_width))
         self.layers.add_module("relu1",  torch.nn.ReLU())
 
         # Hidden layers
         for i in range(depth - 1):
-            self.layers.add_module(f"hidden_layer{i}", torch.nn.Linear(width, width))
+            self.layers.add_module(f"hidden_layer{i}", torch.nn.Linear(inner_width, inner_width))
             self.layers.add_module(f"relu{i + 1}",  torch.nn.ReLU())
 
         # Output layer
-        self.layers.add_module("output_layer",  torch.nn.Linear(width, output_dim))
+        self.layers.add_module("output_layer",  torch.nn.Linear(inner_width, output_dim))
 
 
     def forward(self, X):
@@ -112,8 +113,6 @@ class NN(torch.nn.Module):
 
 
 def train(model, epochs = 10, optimizer='Adam', **kwargs):
-    ## TODO: consider if we have to pass train_loader to it
-    ## TODO: confirm necessity of **kwargs
     """
         Training function for the Neural Network        
         Parameters:
@@ -128,78 +127,59 @@ def train(model, epochs = 10, optimizer='Adam', **kwargs):
             - training_time
             - average_inference_latency
     """
-
-    # TODO: implement alternative optimizers
-    if optimizer == 'Adam': # [Reminder] torch.nn.Module provides model parameters throught the .parameters() method
-        optimizer = torch.optim.Adam(params=model.parameters(), lr=0.001) 
+    # [Reminder] torch.nn.Module provides model parameters throught the .parameters() method
+    if optimizer == 'Adam': # initialize the optimizer
+        optimizer = torch.optim.Adam(params=model.parameters(), lr = 0.01) 
     else:
         raise ValueError("Currently supporting 'Adam' optimizer only")
 
-     # Tensorboard class initialization
-    writer = SummaryWriter()
-
-    # initalize outside the epochs loop so to create an index for the writer class
-    batch_idx = 0
-
-    # initialize performance indicators for the best model
-    training_time = 0
+    writer = SummaryWriter() # Tensorboard class initialization
+    batch_idx = 0 # initalize outside the epochs loop so to create an index for the writer class
+    training_time = 0 # initialize time performance indicator
     cumulative_inference_latency = 0
     
-    # outer loop: epochs
-    for epoch in range(epochs):
-
-        print("\nepoch: ", epoch, "/", epochs)
+    for epoch in range(epochs):     # outer loop: epochs
+        print("\nEpoch: ", epoch, "/", epochs)
         training_start_time = time.time()
 
-        # inner loop: trains the model on the training dataset
-        for batch in train_loader:
+        for batch in train_loader:  # inner loop: training
             features, labels = batch
-            
-            # forward step and loss calculation
-            prediction = model(features)
-            loss = np.sqrt(F.mse_loss(prediction, labels))
+            prediction = model(features) # forward step and loss calculation
+            loss = F.mse_loss(prediction, labels)
+            #R_squared = R2Score(prediction, labels)
+            r_squared = np.inf
+            loss.backward() # loss differentiation (backward step)
+            optimizer.step() # optimization step
+            optimizer.zero_grad() # set gradient to zero
+            writer.add_scalar('training loss rmse', # TensorFlow writer: add the loss
+                              np.sqrt(loss.item()), batch_idx)
+            batch_idx += 1 # TensorFlow writer: increase the index
 
-            # loss differentiation (backward step)
-            loss.backward()
-            # print("mse: ", loss.item())
-            
-            # additional performance metric
-            R_squared = r_squared(prediction, labels)
-
-            # optimization step and gradient zero-ing
-            optimizer.step()
-            optimizer.zero_grad()
-            
-            # TensorFlow writer: add the loss and increase the index
-            writer.add_scalar('loss', loss.item(), batch_idx)
-            batch_idx += 1
-
-        # calculate the training time for an epoch
         training_stop_time = time.time()
-        training_time += training_stop_time - training_start_time
-        print("training time: ", training_time)
+        training_time += training_stop_time - training_start_time # calculate the training time for an epoch
+        print("\nTraining time: ", training_time)
 
-        # inner loop: validation
-        for batch in validation_loader:
+        for batch in validation_loader: # inner loop: validation
+
             features, labels = batch
             inference_start_time = time.time()
             prediction = model(features)
 
-            # time taken to perform a forward pass on a batch of features
-            inference_stop_time = time.time()
-            cumulative_inference_latency += inference_stop_time - inference_start_time
+            inference_stop_time = time.time() # time taken to perform a forward pass on a batch of features
+            inference_time = inference_stop_time - inference_start_time
+            cumulative_inference_latency += inference_time
             
-            validation_loss = np.sqrt(F.mse_loss(prediction, labels))
-            print("validation rmse: ", validation_loss.item())
+            validation_loss = F.mse_loss(prediction, labels)
+            print("\nValidation loss rmse: ", np.sqrt(validation_loss.item()))
             
-            # TensorFlow writer: add the validation loss and increase the index
-            writer.add_scalar('validation loss', validation_loss.item(), epoch) # TensorFlow
+            writer.add_scalar('validation loss rmse', # TensorFlow writer
+                              np.sqrt(validation_loss.item()), epoch) 
     
     # calculate the batch inference latency as an average across all epochs
     average_inference_latency = cumulative_inference_latency/epochs
-    print("average inference latency:", average_inference_latency)
+    print("\nAverage inference latency:", average_inference_latency)
 
-    return loss.item(), R_squared, validation_loss.item(), training_time, average_inference_latency
+    return np.sqrt(loss.item()), r_squared, np.sqrt(validation_loss.item()), training_time, average_inference_latency
 
 
 def get_nn_config(config_file_path='nn_config.yaml'):
@@ -255,12 +235,14 @@ def r_squared(predictions, labels):
     Returns:
         float: R-squared score.
     """
+    
     mean_labels = torch.mean(labels)
-    total_sum_of_squares = torch.sum((labels - mean_labels)**2)
-    residual_sum_of_squares = torch.sum((labels - predictions)**2)
-    
-    r2 = 1 - (residual_sum_of_squares / total_sum_of_squares)
-    
+    sum_of_squared_residuals = torch.sum((labels - predictions)**2)  # SSR sum of squared residuals
+    total_sum_of_squares = torch.sum((labels - mean_labels)**2)      # SST total sum of squares
+
+    r2 = 1 - (sum_of_squared_residuals / total_sum_of_squares)
+    #print("Coefficient of determination: ", r2)
+
     return r2.item()
 
 
@@ -344,21 +326,14 @@ if __name__ == "__main__":
     
     grid = {
         "input_dim": [len(dataset[0][0])],
-        "learning_rate": [0.01, 0.001],
-        "depth": [2, 3],
-        "hidden layer width": [8, 16],
-        "batch size": [16, 32],
-        "epochs": [10, 20]
-        }
-    
-    grid = {
-        "input_dim": [len(dataset[0][0])],
-        "learning_rate": [0.01, 0.001],
+        "inner_width" :[len(dataset[0][0])],
+        "learning_rate": [0.01],
         "depth": [3],
-        "hidden layer width": [16],
-        #"batch size": [16, 32],
+        "batch size": [64],
         "epochs": [100]
         }
+    
+    print(grid)
 
     find_best_nn(grid=grid)
 

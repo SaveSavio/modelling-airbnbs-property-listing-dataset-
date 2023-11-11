@@ -67,13 +67,9 @@ def train(model, epochs = 10):
             features, labels = batch
             prediction = model(features)
             loss = F.mse_loss(prediction, labels)
-            # now we need to take an optimization step by
             loss.backward() # differentiate the loss
-            # mind you it does not overwrite but add to the gradient
-            #print(loss)
-            #print(loss.item())
-            optimizer.step()
-            optimizer.zero_grad() # this is necessary because of the behaviour of .backward() not overwriting values
+            optimizer.step() # optimization step by
+            optimizer.zero_grad() # set the gradient to zero
 
             writer.add_scalar('loss = RMSE', np.sqrt(loss.item()), batch_idx) # cannot used the batch index because it resets every epoch
             batch_idx += 1
@@ -83,4 +79,4 @@ model = LinearRegression()
 if __name__ == "__main__":
     dataset = AirbnbNightlyPriceRegressionDataset()
     train_loader, val_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
-    train(model)
+    train(model, epochs=100)
