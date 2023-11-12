@@ -94,22 +94,18 @@ class NN(torch.nn.Module):
         
         super().__init__()
         self.layers = torch.nn.Sequential() # define layers
-        
         # Input layer
         self.layers.add_module("input_layer", torch.nn.Linear(input_dim, inner_width))
-        self.layers.add_module("relu1",  torch.nn.ReLU())
-
-        # Hidden layers
+         # Hidden layers
+        self.layers.add_module("relu1", torch.nn.ReLU())
         for i in range(depth - 1):
             self.layers.add_module(f"hidden_layer{i}", torch.nn.Linear(inner_width, inner_width))
             self.layers.add_module(f"relu{i + 1}",  torch.nn.ReLU())
-
         # Output layer
         self.layers.add_module("output_layer",  torch.nn.Linear(inner_width, output_dim))
 
-
     def forward(self, X):
-        return self.layers(X) # return prediction
+        return self.layers(X)
 
 
 def train(model, epochs = 10, optimizer='Adam', **kwargs):
@@ -119,8 +115,7 @@ def train(model, epochs = 10, optimizer='Adam', **kwargs):
             - Neural network model (an instance of the NN class)
             - number of epochs for the training
             - the optimizer
-        Returns:
-        for the trained model:
+        Returns, for the trained model:
             - loss.item()
             - R_squared
             - validation_loss
@@ -134,6 +129,7 @@ def train(model, epochs = 10, optimizer='Adam', **kwargs):
     else:
         raise ValueError("Currently supporting 'Adam' optimizer only")
 
+    print(model)
     print(model.parameters())
     print(optimizer)
 
@@ -145,11 +141,10 @@ def train(model, epochs = 10, optimizer='Adam', **kwargs):
     for epoch in range(epochs):     # outer loop: epochs
         print("\nEpoch: ", epoch, "/", epochs)
         training_start_time = time.time()
-
         for batch in train_loader:  # inner loop: training
             features, labels = batch
-            print("features: ", features)
-            print("labels: ", labels)
+            # print("features: ", features)
+            # print("labels: ", labels)
             prediction = model(features) # forward step and loss calculation
             loss = F.mse_loss(prediction, labels)
             #r_squared = R2Score(prediction, labels)
@@ -301,6 +296,7 @@ def find_best_nn(grid, performance_indicator = "rmse"):
         
         model = NN(**config) # initialize an instance of the NN class with config parameters
         # TODO: it might be those parameters are already in the model.parameters() and not needed at all
+        print(model)
         print(model.parameters())
         # perform the model training
         loss, R_squared, validation_loss, training_time, inference_latency = train(model, **config) # determine the loss for each hyperparam configuration
