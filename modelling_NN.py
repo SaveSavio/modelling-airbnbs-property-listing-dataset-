@@ -71,10 +71,10 @@ def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, 
     # use torch DataLoader on all sets
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
     # use full batch for validation and testing
-    #validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
-    #test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    validation_loader = DataLoader(validation_dataset, batch_size=len(validation_dataset), shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
 
-    return train_loader, validation_dataset, test_dataset
+    return train_loader, validation_loader, test_loader
 
 
 class NN(torch.nn.Module):
@@ -108,7 +108,7 @@ class NN(torch.nn.Module):
         return self.layers(X)
 
 
-def train(model, epochs = 10, optimizer='Adam', **kwargs):
+def train(model, train_loader, validation_dataset, epochs = 10, optimizer='Adam', **kwargs):
     """
         Training function for the Neural Network        
         Parameters:
@@ -138,13 +138,11 @@ def train(model, epochs = 10, optimizer='Adam', **kwargs):
     training_time = 0 # initialize time performance indicators
     cumulative_inference_latency = 0
     
-    for epoch in range(epochs):     # outer loop: epochs
+    for epoch in range(epochs): # outer loop: epochs
         print("\nEpoch: ", epoch, "/", epochs)
         training_start_time = time.time()
-        for batch in train_loader:  # inner loop: training
+        for batch in train_loader: # inner loop: training
             features, labels = batch
-            # print("features: ", features)
-            # print("labels: ", labels)
             prediction = model(features) # forward step and loss calculation
             loss = F.mse_loss(prediction, labels)
             #r_squared = R2Score(prediction, labels)
@@ -161,7 +159,12 @@ def train(model, epochs = 10, optimizer='Adam', **kwargs):
         training_time += training_stop_time - training_start_time # calculate the training time for an epoch
         print("\nTraining time: ", training_time)
 
-        validation_loss = validate()
+    validation_loss, inference_time = validate(model=model, dataset=validation_dataset)
+    
+    cumulative_inference_latency += inference_time
+
+    writer.add_scalar('validation loss rmse', # TensorFlow writer
+                        np.sqrt(validation_loss.item()), epoch) 
     
     # calculate the batch inference latency as an average across all epochs
     average_inference_latency = cumulative_inference_latency/epochs
@@ -170,21 +173,26 @@ def train(model, epochs = 10, optimizer='Adam', **kwargs):
     return np.sqrt(loss.item()), r_squared, np.sqrt(validation_loss.item()), training_time, average_inference_latency
 
 
-def validate(dataset, ):
-        features, labels = dataset
-        inference_start_time = time.time()
-        prediction = model(features)
+def validate(model, dataset):
+    """
+        Performs a forward pass and returns loss and inference time
+        
+        Returns:
+            - the loss MSE
+            - inference time
+    """
+    print(dataset)
+    features, labels = dataset
+    inference_start_time = time.time()
+    prediction = model(features)
 
-        inference_stop_time = time.time() # time taken to perform a forward pass on a batch of features
-        inference_time = inference_stop_time - inference_start_time
-        cumulative_inference_latency += inference_time
-        
-        validation_loss = F.mse_loss(prediction, labels)
-        print("\nValidation loss rmse: ", np.sqrt(validation_loss.item()))
-        
-        writer.add_scalar('validation loss rmse', # TensorFlow writer
-                            np.sqrt(validation_loss.item()), epoch) 
-    pass
+    inference_stop_time = time.time() # time taken to perform a forward pass on a batch of features
+    inference_time = inference_stop_time - inference_start_time
+    
+    validation_loss = F.mse_loss(prediction, labels)
+    print("\nValidation loss rmse: ", np.sqrt(validation_loss.item()))
+    
+    return validation_loss, inference_time
 
 
 def get_nn_config(config_file_path='nn_config.yaml'):
@@ -267,20 +275,14 @@ def generate_nn_configs(hyperparameters: typing.Dict[str, typing.Iterable]):
     yield from (dict(zip(keys, v)) for v in itertools.product(*values))
 
 
-def find_best_nn(grid, performance_indicator = "rmse"):
+def find_best_nn(grid, train_loader, validation_dataset, performance_indicator = "rmse"):
     """
         Parameters:
-            A dictionary containing the model parameters. Example:
-                grid = {
-                        "learning_rate": [0.01, 0.001],
-                        "depth": [2, 3],
-                        "hidden layer width": [8, 16],
-                        "batch size": [16, 32],
-                        "epochs": [10, 20]
-                        }
-
+            - A dictionary containing the model parameters grid
+            - training data loader
+            - a validation dataset
         Returns:
-            saves the best model
+            - the best model from the grid, saved in a separate folder for each run
     """
 
     # Generate the parameters grid
@@ -291,15 +293,17 @@ def find_best_nn(grid, performance_indicator = "rmse"):
         best_performance = np.inf
 
     # loop through the grid to find the best model
-    for config in hyperparameters_grid:
-        print(config)
-        
+    for config in hyperparameters_grid:        
         model = NN(**config) # initialize an instance of the NN class with config parameters
         # TODO: it might be those parameters are already in the model.parameters() and not needed at all
+        print(config)
         print(model)
         print(model.parameters())
         # perform the model training
-        loss, R_squared, validation_loss, training_time, inference_latency = train(model, **config) # determine the loss for each hyperparam configuration
+        loss, R_squared, validation_loss, training_time, inference_latency = train(
+                                                                                model,
+                                                                                train_loader=train_loader,
+                                                                                validation_dataset=validation_dataset) # determine the loss for each hyperparam configuration
         
         # Compare the model performance with the best. If better, update the values 
         if validation_loss < best_performance:
@@ -339,9 +343,7 @@ if __name__ == "__main__":
         "epochs": [100]
         }
     
-    print(grid)
-
-    find_best_nn(grid=grid)
+    find_best_nn(grid=grid, train_loader=train_loader, validation_dataset=validation_dataset, performance_indicator='rmse')
 
     ###########  this block is here in case I do not want to use get_nn_config ########
     # get the model configuration from
