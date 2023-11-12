@@ -127,15 +127,19 @@ def train(model, epochs = 10, optimizer='Adam', **kwargs):
             - training_time
             - average_inference_latency
     """
-    # [Reminder] torch.nn.Module provides model parameters throught the .parameters() method
     if optimizer == 'Adam': # initialize the optimizer
-        optimizer = torch.optim.Adam(params=model.parameters(), lr = 0.01) 
+        optimizer = torch.optim.Adam(params=model.parameters(), lr = 0.01)
+    elif optimizer == 'SGD':
+        optimizer = torch.optim.SGD(params=model.parameters(), lr = 0.01)
     else:
         raise ValueError("Currently supporting 'Adam' optimizer only")
 
+    print(model.parameters())
+    print(optimizer)
+
     writer = SummaryWriter() # Tensorboard class initialization
     batch_idx = 0 # initalize outside the epochs loop so to create an index for the writer class
-    training_time = 0 # initialize time performance indicator
+    training_time = 0 # initialize time performance indicators
     cumulative_inference_latency = 0
     
     for epoch in range(epochs):     # outer loop: epochs
@@ -144,42 +148,48 @@ def train(model, epochs = 10, optimizer='Adam', **kwargs):
 
         for batch in train_loader:  # inner loop: training
             features, labels = batch
+            print("features: ", features)
+            print("labels: ", labels)
             prediction = model(features) # forward step and loss calculation
             loss = F.mse_loss(prediction, labels)
-            #R_squared = R2Score(prediction, labels)
-            r_squared = np.inf
+            #r_squared = R2Score(prediction, labels)
+            r_squared = 0
             loss.backward() # loss differentiation (backward step)
             optimizer.step() # optimization step
             optimizer.zero_grad() # set gradient to zero
-            writer.add_scalar('training loss rmse', # TensorFlow writer: add the loss
+
+            writer.add_scalar('training loss rmse', # TensorFlow writer: add a step
                               np.sqrt(loss.item()), batch_idx)
-            batch_idx += 1 # TensorFlow writer: increase the index
+            batch_idx += 1 # TensorFlow writer: increase the index for next step
 
         training_stop_time = time.time()
         training_time += training_stop_time - training_start_time # calculate the training time for an epoch
         print("\nTraining time: ", training_time)
 
-        for batch in validation_loader: # inner loop: validation
-
-            features, labels = batch
-            inference_start_time = time.time()
-            prediction = model(features)
-
-            inference_stop_time = time.time() # time taken to perform a forward pass on a batch of features
-            inference_time = inference_stop_time - inference_start_time
-            cumulative_inference_latency += inference_time
-            
-            validation_loss = F.mse_loss(prediction, labels)
-            print("\nValidation loss rmse: ", np.sqrt(validation_loss.item()))
-            
-            writer.add_scalar('validation loss rmse', # TensorFlow writer
-                              np.sqrt(validation_loss.item()), epoch) 
+        validation_loss = validate()
     
     # calculate the batch inference latency as an average across all epochs
     average_inference_latency = cumulative_inference_latency/epochs
     print("\nAverage inference latency:", average_inference_latency)
 
     return np.sqrt(loss.item()), r_squared, np.sqrt(validation_loss.item()), training_time, average_inference_latency
+
+
+def validate(dataset, ):
+        features, labels = dataset
+        inference_start_time = time.time()
+        prediction = model(features)
+
+        inference_stop_time = time.time() # time taken to perform a forward pass on a batch of features
+        inference_time = inference_stop_time - inference_start_time
+        cumulative_inference_latency += inference_time
+        
+        validation_loss = F.mse_loss(prediction, labels)
+        print("\nValidation loss rmse: ", np.sqrt(validation_loss.item()))
+        
+        writer.add_scalar('validation loss rmse', # TensorFlow writer
+                            np.sqrt(validation_loss.item()), epoch) 
+    pass
 
 
 def get_nn_config(config_file_path='nn_config.yaml'):
@@ -289,9 +299,9 @@ def find_best_nn(grid, performance_indicator = "rmse"):
     for config in hyperparameters_grid:
         print(config)
         
-        # initialize an instance of the NN class with config parameters
-        model = NN(**config)
-
+        model = NN(**config) # initialize an instance of the NN class with config parameters
+        # TODO: it might be those parameters are already in the model.parameters() and not needed at all
+        print(model.parameters())
         # perform the model training
         loss, R_squared, validation_loss, training_time, inference_latency = train(model, **config) # determine the loss for each hyperparam configuration
         
@@ -306,8 +316,8 @@ def find_best_nn(grid, performance_indicator = "rmse"):
             best_model_inference_latency = inference_latency
 
     save_model(best_model, best_model_hyperparameters,
-               RMSE_loss = best_training_loss,
-               validation_loss = best_validation_loss,
+               RMSE_loss=best_training_loss,
+               validation_loss=best_validation_loss,
                R_squared=best_R_squared,
                training_duration=best_model_training_time,
                inference_latency=best_model_inference_latency,
