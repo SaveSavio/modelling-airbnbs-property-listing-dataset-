@@ -71,10 +71,10 @@ def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, 
     # use torch DataLoader on all sets
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
     # use full batch for validation and testing
-    validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    #validation_loader = DataLoader(validation_dataset, batch_size=batch_size, shuffle=False)
+    #test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    return train_loader, validation_loader, test_loader
+    return train_loader, validation_dataset, test_dataset
 
 
 class NN(torch.nn.Module):
@@ -322,7 +322,7 @@ if __name__ == "__main__":
     # initialize an instance of the class which creates a PyTorch dataset
     dataset = AirbnbNightlyPriceRegressionDataset(dataset_path=dataset_path, label=label)
     
-    train_loader, validation_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
+    train_loader, validation_dataset, test_dataset = data_loader(dataset, batch_size=32, shuffle=True)
     
     grid = {
         "input_dim": [len(dataset[0][0])],
