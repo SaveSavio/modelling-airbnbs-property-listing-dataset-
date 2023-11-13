@@ -1,8 +1,8 @@
 # nn_config.yaml
 
 
-optimiser: 'Adam'           # Name of the optimizer (e.g., Adam, SGD, etc.)
-learning_rate: 0.001        # Learning rate for the optimizer
+#optimiser: 'Adam'           # Name of the optimizer (e.g., Adam, SGD, etc.)
+lr: 0.001        # Learning rate for the optimizer
 hidden_layer_width: 16      # Width of each hidden layer (all hidden layers have the same width)
 depth: 2        # Depth of the model (number of hidden layers)
 input_dim: 9
