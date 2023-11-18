@@ -183,6 +183,8 @@ def find_best_model(search_directory = './models/classification'):
 
 if __name__ == "__main__":
     data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
+    #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv"
+
 
     # load the previously cleaned data
     df = pd.read_csv(data_path)

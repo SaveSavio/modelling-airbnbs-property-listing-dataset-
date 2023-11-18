@@ -5,7 +5,6 @@ import json
 import numpy as np
 import os
 import pandas as pd
-#from sklearn.metrics import r2_score
 import time
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -17,8 +16,8 @@ import typing
 from typing import Any
 import yaml
 
-
-class AirbnbNightlyPriceRegressionDataset(Dataset):
+# TODO: consider if this can be commonized between Classification & Regression
+class AirbnbNightlyPriceRegressionDataset(Dataset): 
     """
         Creates a PyTorch dataset from tabular data.
         Parameters:
@@ -77,7 +76,7 @@ def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, 
     return train_loader, validation_loader, test_loader
 
 
-class NN(torch.nn.Module):
+class Classification(torch.nn.Module):
     """
         Defines a fully connected neural network. Inherits methods from the class "torch.nn.Module".
         On initialization, set the following
@@ -102,10 +101,11 @@ class NN(torch.nn.Module):
             self.layers.add_module(f"hidden_layer{i}", torch.nn.Linear(inner_width, inner_width))
             self.layers.add_module(f"relu{i + 1}",  torch.nn.ReLU())
         # Output layer
+        # TODO: output dimension has to be the same as the number of categories
         self.layers.add_module("output_layer",  torch.nn.Linear(inner_width, output_dim))
 
     def forward(self, X):
-        return self.layers(X)
+        return F.softmax(self.layers(X)) 
 
 
 def train(model, train_loader, validation_loader, optimizer='Adam', learning_rate='0.001', epochs=10):
@@ -129,10 +129,6 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
     else:
         raise ValueError("Currently supporting 'Adam' optimizer only")
 
-    print(model)
-    print(model.parameters())
-    print(optimizer)
-
     writer = SummaryWriter() # Tensorboard class initialization
     batch_idx = 0 # initalize outside the epochs loop so to create an index for the writer class
     training_time = 0 # initialize time performance indicators
@@ -140,28 +136,14 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
     
     for epoch in range(epochs): # outer loop: epochs
 
-
         print("\nEpoch: ", epoch, "/", epochs)
-
-        # validation_loss, inference_time = validate(model=model, dataset=validation_loader)
-    
-        # cumulative_inference_latency += inference_time
-
-        # writer.add_scalar('validation loss rmse', # TensorFlow writer
-        #                     np.sqrt(validation_loss.item()), epoch) 
-
         training_start_time = time.time()
 
         for batch in train_loader: # inner loop: training
             # print(batch_idx)
             features, labels = batch
             prediction = model(features) # forward step and loss calculation
-            loss = F.mse_loss(prediction, labels)
-            # Squeeze the target tensor to make its shape match the predictions
-            r_squared = r2_score(labels, prediction.squeeze())
-
-            r_squared = 0
-
+            loss = F.binary_cross_entropy(prediction, labels)
             loss.backward() # loss differentiation (backward step)
             optimizer.step() # optimization step
             optimizer.zero_grad() # set gradient to zero
@@ -171,11 +153,10 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
             batch_idx += 1 # TensorFlow writer: increase the index for next step
 
         training_stop_time = time.time()
-        training_time += training_stop_time - training_start_time # calculate the training time for an epoch
+        training_time += training_stop_time - training_start_time # calculate the training time
         print("\nTraining time: ", training_time)
 
-        validation_loss, inference_time = validate(model=model, dataset=validation_loader)
-    
+        validation_loss, inference_time, r_squared = validate(model=model, dataset=validation_loader)
         cumulative_inference_latency += inference_time
 
         writer.add_scalar('validation loss rmse', # TensorFlow writer
@@ -202,10 +183,12 @@ def validate(model, dataset):
         prediction = model(features)
         inference_stop_time = time.time() # time taken to perform a forward pass on a batch of features
         inference_time = inference_stop_time - inference_start_time
-        validation_loss = F.mse_loss(prediction, labels)
+        validation_loss = F.binary_cross_entropy(prediction, labels)
+        #r_squared = r2_score(prediction, labels)
+        r_squared = 0
         print("\nValidation loss rmse: ", np.sqrt(validation_loss.item()))
     
-    return validation_loss, inference_time
+    return validation_loss, inference_time, r_squared
 
 
 def get_nn_config(config_file_path='nn_config.yaml'):
@@ -342,10 +325,10 @@ def find_best_nn(grid, train_loader, validation_loader, performance_indicator = 
 
 if __name__ == "__main__":
     
-    dataset_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv"
+    dataset_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
     #dataset_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
 
-    label = "Price_Night"
+    label = "Category"
 
     # initialize an instance of the class which creates a PyTorch dataset
     dataset = AirbnbNightlyPriceRegressionDataset(dataset_path=dataset_path, label=label)
