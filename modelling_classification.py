@@ -9,7 +9,7 @@ import typing
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import precision_score, recall_score, accuracy_score
+from sklearn.metrics import precision_score, recall_score, accuracy_score, f1_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from tabular_data import database_utils as dbu
@@ -28,7 +28,7 @@ def features_scaling(df, columns_to_scale_index, label):
             a dataframe whose "features_to_scale" are scaled, with exception of "label"
     """
     # remove the label from the list, there's no need to rescale it
-    #columns_to_scale_index.remove(label)
+    # columns_to_scale_index.remove(label)
     # create the subset of features that need scaling
     columns_subset = df[columns_to_scale_index]
 
@@ -36,13 +36,12 @@ def features_scaling(df, columns_to_scale_index, label):
     scaled_columns = scaler.fit_transform(columns_subset) # fit and transform the data
     # now substitute the scaled features back in the original dataframe
     df[features_to_scale] = scaled_columns
-    #features.head()
     return df
 
 
 def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
                                               X_train, X_test, y_train, y_test,
-                                              validation_accuracy="accuracy", random_state=1):
+                                              scoring="accuracy", random_state=1):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
@@ -57,7 +56,7 @@ def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_
 
     grid_search = GridSearchCV(model_class_obj(random_state=random_state),
                                param_grid=parameters_grid,
-                               scoring=validation_accuracy, cv=5, n_jobs=-1)
+                               scoring=scoring, cv=5, n_jobs=-1)
 
     grid_search.fit(X_train, y_train)
 
@@ -69,17 +68,17 @@ def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_
     # Train the best model on the test dataset and evaluate performance
     best_model.fit(X_train, y_train)
     y_pred = best_model.predict(X_train)
-    validation_accuracy = accuracy_score(y_pred, y_train)
+    test_accuracy = accuracy_score(y_pred, y_train)
 
     # Train the best model on the test dataset and evaluate performance
     best_model.fit(X_test, y_test)
     y_pred = best_model.predict(X_test)
-
+    print(y_pred)
     # calculate performance metrics
     test_precision = precision_score(y_test, y_pred, average=None)
     test_recall = recall_score(y_test, y_pred, average=None)
     test_accuracy = accuracy_score(y_test, y_pred)
-    #test_f1 = f1_score(y_test, y_pred)
+    test_f1 = f1_score(y_test, y_pred)
 
     # change these types from ndarray to list for saving to json
     test_precision = list(test_precision)
@@ -91,7 +90,8 @@ def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_
                   "Validation Accuracy ": validation_accuracy,
                   "Test Accuracy": test_accuracy,
                   "Test Precision": test_precision,
-                  "Test Recall": test_recall}
+                  "Test Recall": test_recall
+                  "Test F1": test_f1}
 
     return model_info
 
@@ -192,8 +192,6 @@ if __name__ == "__main__":
     # define labels and features
     label = "Category"
     features, labels = dbu.load_airbnb(df, label=label, numeric_only=True)
-    features.head()
-    labels.head()
     # create a list of numerical features
     features_to_scale = ['guests', 'beds', 'bathrooms', 'Price_Night', 'Cleanliness_rating',
                             'Accuracy_rating', 'Communication_rating', 'Location_rating',

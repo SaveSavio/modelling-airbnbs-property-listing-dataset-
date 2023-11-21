@@ -108,7 +108,7 @@ def features_scaling(df, columns_to_scale_index, label):
 
 
 def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
-    X_train, X_test, y_train, y_test, random_state = 1):
+    X_train, X_validation, X_test, y_train, y_validation, y_test, random_state = 1):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
@@ -122,23 +122,27 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     """
     grid_search = GridSearchCV(mode_class_obj(random_state=random_state), parameters_grid, cv=5,
                                scoring='neg_root_mean_squared_error', verbose=0)
+    
     grid_search.fit(X_train, y_train) # grid search on the training set
-
     # Get the best hyperparameters and the best model
     best_hyperparams = grid_search.best_params_
     best_model = grid_search.best_estimator_
-    #validation_rmse = -grid_search.best_score_
+    # y_pred = best_model.predict(X_train)
+    # GridSearchCV does validation under the hood hence we will consider the result
+
+    # Having established the best model with K-Fold CV,
+    # the identified hyperparameters should be re-trained on a whole dataset.
+    # fit and predict on the training set
+    best_model.fit(X_train, y_train)
     y_pred = best_model.predict(X_train)
-    validation_rmse = np.sqrt(mean_squared_error(y_train, y_pred))
+    train_rmse = np.sqrt(mean_squared_error(y_train, y_pred))
 
-    # fit and predict on the validation set
-    best_model.fit(X_test, y_test)
-    y_pred = best_model.predict(X_test)
-    test_rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-
-    # additional metrics
-    r2 = r2_score(y_test, y_pred)
-    mae = mean_absolute_error(y_test, y_pred)
+    # as a sanity check, we validate the model for overfitting.
+    # this is not strictly necessary anyway fit and predict on the validation set
+    y_pred = best_model.predict(X_validation)
+    validation_rmse = np.sqrt(mean_squared_error(y_validation, y_pred))
+    validation_r2 = r2_score(y_validation, y_pred)
+    validation_mae = mean_absolute_error(y_validation, y_pred)
 
     # create a pandas dataframe to check the prediction later
     data = {'y_pred': y_pred, 'y_test': y_test}
@@ -147,10 +151,10 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
 
     # create a dictionary containing: best hyperparameters and performance metrics
     model_info = {"best hyperparameters": best_hyperparams,
+                  "train_RMSE": train_rmse,
                   "validation_RMSE": validation_rmse,
-                  "test_RMSE": test_rmse,
-                  "test_R^2": r2,
-                  "test_MAE": mae}
+                  "validation_R^2": validation_r2,
+                  "validation_MAE": validation_mae}
     print("model info: ", model_info)
 
     return model_info
@@ -227,17 +231,21 @@ def find_best_model(search_directory = './models/regression'):
                 if data['validation_RMSE'] < min_rmse:
                     min_rmse = data['validation_RMSE']
                     best_model = json_file[:-4] + 'pkl'
+                    train_rmse = data.get('train_RMSE')
                     validation_rmse = data.get('validation_RMSE')
-                    test_rmse = data.get('test_RMSE')
-                    best_performance = [validation_rmse, test_rmse]
+                    validation_r2 = data.get('validation_r2')
+                    validation_mae = data.get('validation_mae')
+                    best_performance = [validation_rmse, train_rmse]
                     best_hyperparameters = data.get('best hyperparameters')
     
     # loads the model
     best_model = joblib.load(best_model)
     print("Best model loaded: ", best_model,
-          "\nValidation RMSE: ", validation_rmse, 
-          "\nTest RMSE: ", test_rmse, # TODO: it's not printing this
-          "\nHyper-parameters: ", best_hyperparameters)
+          "\nHyper-parameters: ", best_hyperparameters,
+          "\ntrain_RMSE: ", train_rmse,
+          "\nvalidation_RMSE: ", validation_rmse,
+          "\nValidation_R^2: ", validation_r2,
+          "\nValidation_MAE:", validation_mae)
     return best_model, best_performance, best_hyperparameters
 
 

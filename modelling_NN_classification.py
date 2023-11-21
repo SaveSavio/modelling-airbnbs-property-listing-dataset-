@@ -17,7 +17,7 @@ from typing import Any
 import yaml
 
 # TODO: consider if this can be commonized between Classification & Regression
-class AirbnbNightlyPriceRegressionDataset(Dataset): 
+class AirbnbNightlyPriceClassificationDataset(Dataset): 
     """
         Creates a PyTorch dataset from tabular data.
         Parameters:
@@ -36,14 +36,14 @@ class AirbnbNightlyPriceRegressionDataset(Dataset):
     
     def __getitem__(self, idx):
         features = torch.tensor(self.features.iloc[idx]).float() # simply gets the idx example and transfor it into a torch object
-        label = torch.tensor(self.labels.iloc[idx]).float()
+        label = torch.tensor(self.labels.iloc[idx])
         return (features, label)
     
     def __len__(self):
         return len(self.features)
 
 
-def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, shuffle=True):    
+def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, test_batch_size=32, shuffle=True):    
     """
         Dataloader function that
             - splits the data into test, train and validation datasets
@@ -68,7 +68,7 @@ def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, 
     train_dataset, validation_dataset, test_dataset = random_split(dataset, [train_size, validation_size, test_size])
 
     # use torch DataLoader on all sets
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
+    train_loader = DataLoader(train_dataset, batch_size=test_batch_size, shuffle=shuffle)
     # use full batch for validation and testing
     validation_loader = DataLoader(validation_dataset, batch_size=len(validation_dataset), shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
@@ -325,15 +325,16 @@ def find_best_nn(grid, train_loader, validation_loader, performance_indicator = 
 
 if __name__ == "__main__":
     
+    # TODO: implement load_airbnb one-hot-encoding dynamically
     dataset_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
     #dataset_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
 
     label = "Category"
 
     # initialize an instance of the class which creates a PyTorch dataset
-    dataset = AirbnbNightlyPriceRegressionDataset(dataset_path=dataset_path, label=label)
+    dataset = AirbnbNightlyPriceClassificationDataset(dataset_path=dataset_path, label=label)
     
-    train_loader, validation_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
+    train_loader, validation_loader, test_loader = data_loader(dataset, test_batch_size=32, shuffle=True)
     
     grid = {
         "input_dim": [len(dataset[0][0])],
@@ -346,11 +347,3 @@ if __name__ == "__main__":
         }
     
     find_best_nn(grid=grid, train_loader=train_loader, validation_loader=validation_loader, performance_indicator='rmse')
-
-    ###########  this block is here in case I do not want to use get_nn_config ########
-    # get the model configuration from
-    # config_file_path='nn_config.yaml'
-    # config = get_nn_config(config_file_path)
-    # model = NN(**config)
-    # loss, R_squared = train(model, **config)
-    # save_model(model, config, RMSE_loss = loss, R_squared=R_squared)   

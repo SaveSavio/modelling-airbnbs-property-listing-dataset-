@@ -67,9 +67,10 @@ Data is read into a Pandas dataframe, then the following actions are performed:
 
 ## Regression models
 <u>NOTE:</u><br>
-The framework code is contained in <u>modelling.py</u> allows to systematically compare the performance of regression models.
+The framework code is contained in <u>modelling_regression.py</u> allows to systematically compare the performance of regression models.
 
-The main function is tune_regression_model_hyperparameters which is designed to tune the regression model hyperparameters by using sklearn GridSearchCV.
+The main function is tune_regression_model_hyperparameters which is designed to tune the regression model hyperparameters by using sklearn GridSearchCV with K-fold Cross-Validation.
+As expected, this approach is rather time-intensive and might not be feasible for the training of large models.
 
 It takes the following paremeters:
 - The model class
