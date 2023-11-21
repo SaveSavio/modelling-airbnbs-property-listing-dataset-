@@ -108,7 +108,7 @@ def features_scaling(df, columns_to_scale_index, label):
 
 
 def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
-    X_train, X_validation, X_test, y_train, y_validation, y_test, random_state = 1):
+    X_train, X_validation, y_train, y_validation, random_state = 1):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
@@ -145,7 +145,7 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     validation_mae = mean_absolute_error(y_validation, y_pred)
 
     # create a pandas dataframe to check the prediction later
-    data = {'y_pred': y_pred, 'y_test': y_test}
+    data = {'y_pred': y_pred, 'y_test': y_validation}
     df = pd.DataFrame(data)
     df.to_csv('test.csv')
 
@@ -184,7 +184,7 @@ def save_model(model, model_filename: str, folder_path: str, model_info: dict):
       json.dump(model_info, json_file)
     
 
-def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X_test, y_train, y_test):
+def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X_validation, y_train, y_validation):
     """
         Evaluates all models in the model list.
         Each model is evaluated according to a grid list by tune_regression_model_hyperparameters function
@@ -199,7 +199,7 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
         print('Estimator: ', model, '\nHyperparameters grid list: ', parameter_grid_list[index])
 
         model_performance = tune_regression_model_hyperparameters(model,parameter_grid_list[index],
-                                                                  X_train, X_test, y_train, y_test)
+                                                                  X_train, X_validation, y_train, y_validation)
         
         # define model naming strategy and saving folder path
         model_filename = 'best_'+model.__name__
@@ -277,7 +277,7 @@ if __name__ == "__main__":
     # For example, if you set cv=5, the dataset will be divided into 5 equal parts,
     # and the hyperparameter tuning process will be performed five times,
     # with each part serving as the validation set once and the rest as the training set.
-    X_train, X_test, y_train, y_test = train_test_split(scaled_features, labels, test_size=0.3)
+    X_train, X_validation, y_train, y_validation = train_test_split(scaled_features, labels, test_size=0.3)
 
     # X_validation, X_test, y_validation, y_test = train_test_split(X_test, y_test, test_size=0.5)
 
