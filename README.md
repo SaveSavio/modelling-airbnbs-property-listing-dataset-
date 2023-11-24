@@ -109,14 +109,14 @@ For each estimator, a hyperparameters grid was set and evaluated with a "brute f
 | GradientBoostingRegressor | 100.52 | 101.413 | 0.44 |  64.43 |
 
 - The linear SGDRegressor is the baseline for our evaluation:
-  - has a test RMSE of >90$
-  - R^2 is 0.43 meaning that only 43% of the Price/Night variance is explained by this model.
-- The other 3 models perform relatively close, with DecisionTreeRegressor showing a certain level of overfitting
-(test RMSE > validation RMSE), RandomForestRegressor improves the performance of DecisionTree as expected whilst 
-- Gradient Boosting shows:
-  - the best validation and test RMSE
-  - no overfitting
-  - R^2 of 0.86
+  - has a validation RMSE of >95$
+  - R^2 is 0.47 meaning that only 47% of the Price/Night variance is explained by this model.
+- The other 3 models perform relatively close, with RandomForestRegressor showing marginally the best performance:
+  - validation RMSE 96$
+  - R^2 of 0.49.
+
+It appears the regression models performance is limited by the amount of information provided by the data.
+The R^2 is always below 0.5, meaning our models have limited ability to explain the variability in the label.
 
 ## Classification models
 A framework analogous to regression - contained in <u>modelling_classification.py</u> - has been developed for a classification scenario.
