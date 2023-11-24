@@ -101,12 +101,12 @@ For each estimator, a hyperparameters grid was set and evaluated with a "brute f
 1) Ranked from best to worst, based on the score on the test set:
 
 
-| Estimator | Validation RMSE | Test RMS | Test R^2 | Test MAE |
+| Estimator | Training RMSE | Validation RMSE | Test R^2 | Test MAE |
 |----------|----------|----------|----------|----------|
-| SDGRegressor | 91.96 | 97.53 | 0.4389 | 65.05 |
-| DecisionTreeRegressor | 54.96 | 64.66 | 0.75 | 42.93 |
-| RandomForestRegressor | 55.19 | 56.03 | 0.81 | 36.26 |
-| GradientBoostingRegressor | 49.99 | 48.63 | 0.86 |  31.67 |
+| SDGRegressor | 96.17 | 98.43 | 0.47 | 61.33 |
+| DecisionTreeRegressor | 100.19 | 109.68 | 0.34 | 69.48 |
+| RandomForestRegressor | 95.76 | 96.54 | 0.49 | 59.38 |
+| GradientBoostingRegressor | 100.52 | 101.413 | 0.44 |  64.43 |
 
 - The linear SGDRegressor is the baseline for our evaluation:
   - has a test RMSE of >90$

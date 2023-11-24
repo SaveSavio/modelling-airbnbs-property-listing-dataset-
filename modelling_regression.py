@@ -120,10 +120,10 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
             - a dictionary of its best hyperparameter values
             - a dictionary of its performance metrics.
     """
-    grid_search = GridSearchCV(mode_class_obj(), parameters_grid, cv=5,
+    grid_search = GridSearchCV(mode_class_obj(), parameters_grid, cv=10,
                                scoring='neg_root_mean_squared_error', verbose=0, n_jobs=-1)
     
-    grid_search.fit(X_train, np.log(y_train)) # fit the gridsearch on the training set
+    grid_search.fit(X_train, y_train) # fit the gridsearch on the training set
     
     # cv_results = grid_search.cv_results_ # A dict with all results for the grid search
     # df = pd.DataFrame.from_dict(cv_results) 
@@ -134,9 +134,9 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     best_rmse = -grid_search.best_score_ # Mean cross-validated score of the best_estimator
 
     y_val_pred = best_model.predict(X_validation) # predict on the validation set
-    validation_rmse = np.sqrt(mean_squared_error(y_validation, np.exp(y_val_pred)))
-    validation_r2 = r2_score(y_validation, np.exp(y_val_pred))
-    validation_mae = mean_absolute_error(y_validation, np.exp(y_val_pred))
+    validation_rmse = np.sqrt(mean_squared_error(y_validation, y_val_pred))
+    validation_r2 = r2_score(y_validation, y_val_pred)
+    validation_mae = mean_absolute_error(y_validation, y_val_pred)
 
     prediction_csv = pd.DataFrame({'y_validation': y_validation, 'y_prediction': np.exp(y_val_pred)})
     prediction_csv.to_csv (r'prediction.csv', index=False, header=True)
@@ -257,7 +257,7 @@ if __name__ == "__main__":
     scaled_features = features_scaling(features, features_to_scale, label)
 
     # split data in train and validation sets
-    X_train, X_validation, y_train, y_validation = train_test_split(scaled_features, labels, test_size=0.2)
+    X_train, X_validation, y_train, y_validation = train_test_split(scaled_features, labels, test_size=0.3)
 
     # list of models to be used for the regression
     model_list = [SGDRegressor, # model 1
@@ -272,7 +272,7 @@ if __name__ == "__main__":
         {
         'alpha': [0.001, 0.01, 0.1], # model 1
         'penalty': ['l2', 'l1', 'elasticnet'],
-        'loss': ['squared_error', 'huber', 'epsilon_insensitive'],
+        'loss': ['squared_error'],
         'learning_rate':['constant', 'adaptive'],
         'eta0': [0.001, 0.01],
         'max_iter': [10**5]
@@ -293,19 +293,12 @@ if __name__ == "__main__":
         {
         'n_estimators': [10, 50, 100, 200], # model 4
         'learning_rate': [0.001, 0.01, 0.1],
-         'max_depth': [10, 20, 30],
+         'max_depth': [None, 10, 30],
         'min_samples_split': [2, 5, 10],
          'min_samples_leaf': [1, 2, 4],
          }
         ]
     
-    # parameter_grid_list = [
-    #     {'n_estimators': [50, 100, 200], # model 4
-    #     'max_depth': [3, 5, 10],
-    #     'min_samples_leaf': [4, 8],
-    #     'min_samples_split': [2, 4]
-    #      }]
-
     # evaluate all models in the model list according to the parameters in the grid
     # for each model type, save the best
     evaluate_all_models(model_list, parameter_grid_list, X_train, X_validation, y_train, y_validation)
