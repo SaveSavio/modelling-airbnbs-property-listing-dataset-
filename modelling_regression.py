@@ -108,7 +108,7 @@ def features_scaling(df, columns_to_scale_index, label):
 
 
 def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
-    X_train, X_validation, y_train, y_validation, random_state = 1):
+    X_train, X_validation, y_train, y_validation, random_state = 3):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
@@ -120,38 +120,30 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
             - a dictionary of its best hyperparameter values
             - a dictionary of its performance metrics.
     """
-    grid_search = GridSearchCV(mode_class_obj(random_state=random_state), parameters_grid, cv=5,
-                               scoring='neg_root_mean_squared_error', verbose=0)
+    grid_search = GridSearchCV(mode_class_obj(), parameters_grid, cv=5,
+                               scoring='neg_root_mean_squared_error', verbose=0, n_jobs=-1)
     
-    grid_search.fit(X_train, y_train) # grid search on the training set
-    # Get the best hyperparameters and the best model
-    best_hyperparams = grid_search.best_params_
-    best_model = grid_search.best_estimator_
-    # y_pred = best_model.predict(X_train)
-    # GridSearchCV does validation under the hood hence we will consider the result
+    grid_search.fit(X_train, np.log(y_train)) # fit the gridsearch on the training set
+    
+    # cv_results = grid_search.cv_results_ # A dict with all results for the grid search
+    # df = pd.DataFrame.from_dict(cv_results) 
+    # df.to_csv (r'grid_search_results.csv', index=False, header=True)
 
-    # Having established the best model with K-Fold CV,
-    # the identified hyperparameters should be re-trained on a whole dataset.
-    # fit and predict on the training set
-    best_model.fit(X_train, y_train)
-    y_pred = best_model.predict(X_train)
-    train_rmse = np.sqrt(mean_squared_error(y_train, y_pred))
+    best_hyperparams = grid_search.best_params_ # Parameter setting that gave the best results on the hold out data
+    best_model = grid_search.best_estimator_ # estimator which gave highest score (or smallest loss if specified) on the left out data.
+    best_rmse = -grid_search.best_score_ # Mean cross-validated score of the best_estimator
 
-    # as a sanity check, we validate the model for overfitting.
-    # this is not strictly necessary anyway fit and predict on the validation set
-    y_pred = best_model.predict(X_validation)
-    validation_rmse = np.sqrt(mean_squared_error(y_validation, y_pred))
-    validation_r2 = r2_score(y_validation, y_pred)
-    validation_mae = mean_absolute_error(y_validation, y_pred)
+    y_val_pred = best_model.predict(X_validation) # predict on the validation set
+    validation_rmse = np.sqrt(mean_squared_error(y_validation, np.exp(y_val_pred)))
+    validation_r2 = r2_score(y_validation, np.exp(y_val_pred))
+    validation_mae = mean_absolute_error(y_validation, np.exp(y_val_pred))
 
-    # create a pandas dataframe to check the prediction later
-    data = {'y_pred': y_pred, 'y_test': y_validation}
-    df = pd.DataFrame(data)
-    df.to_csv('test.csv')
+    prediction_csv = pd.DataFrame({'y_validation': y_validation, 'y_prediction': np.exp(y_val_pred)})
+    prediction_csv.to_csv (r'prediction.csv', index=False, header=True)
 
     # create a dictionary containing: best hyperparameters and performance metrics
     model_info = {"best hyperparameters": best_hyperparams,
-                  "train_RMSE": train_rmse,
+                  "training_RMSE": best_rmse,
                   "validation_RMSE": validation_rmse,
                   "validation_R^2": validation_r2,
                   "validation_MAE": validation_mae}
@@ -198,7 +190,7 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
     for index, model in enumerate(model_list):
         print('Estimator: ', model, '\nHyperparameters grid list: ', parameter_grid_list[index])
 
-        model_performance = tune_regression_model_hyperparameters(model,parameter_grid_list[index],
+        model_performance = tune_regression_model_hyperparameters(model, parameter_grid_list[index],
                                                                   X_train, X_validation, y_train, y_validation)
         
         # define model naming strategy and saving folder path
@@ -211,7 +203,8 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
 
 def find_best_model(search_directory = './models/regression'):
     """
-        Finds the best model amongst those in a folder path by comparing their rmse (evaluation metric)
+        Finds the best model amongst those in a folder path by comparing their evaluation metric.
+        The set evaluation metric is the RMSE on the validation dataset.
         Returns:
             - loaded model
             - a dictionary of its hyperparameters
@@ -231,10 +224,10 @@ def find_best_model(search_directory = './models/regression'):
                 if data['validation_RMSE'] < min_rmse:
                     min_rmse = data['validation_RMSE']
                     best_model = json_file[:-4] + 'pkl'
-                    train_rmse = data.get('train_RMSE')
+                    train_rmse = data.get('training_RMSE')
                     validation_rmse = data.get('validation_RMSE')
-                    validation_r2 = data.get('validation_r2')
-                    validation_mae = data.get('validation_mae')
+                    validation_r2 = data.get('validation_R^2')
+                    validation_mae = data.get('validation_MAE')
                     best_performance = [validation_rmse, train_rmse]
                     best_hyperparameters = data.get('best hyperparameters')
     
@@ -250,36 +243,21 @@ def find_best_model(search_directory = './models/regression'):
 
 
 if __name__ == "__main__":
-    #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
+    # data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
     data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv"
-    # data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_skewness_red.csv"
+    df = pd.read_csv(data_path) # load the previously cleaned data
 
-
-    # load the previously cleaned data
-    df = pd.read_csv(data_path)
-
-    # define labels and features
-    label = 'Price_Night'
+    label = 'Price_Night' # define labels and, subsequently, features
     features, labels = dbu.load_airbnb(df, label=label, numeric_only=True)
     # create a list of numerical features
     features_to_scale = ['guests', 'beds', 'bathrooms', 'Price_Night', 'Cleanliness_rating',
                             'Accuracy_rating', 'Communication_rating', 'Location_rating',
                             'Check-in_rating', 'Value_rating', 'amenities_count', 'bedrooms']
-    
+    # apply features scaling
     scaled_features = features_scaling(features, features_to_scale, label)
 
-    # split in train, validation, test sets
-    # in the case of GridSearchCV, I will only have the train and test set and the cross validation
-    # is sorted under the hood.
-    # TODO: move this in the README.md
-    # The cv parameter in GridSearchCV is an integer or a cross-validation splitter object.
-    # It determines how many folds or subsets the dataset should be split into for cross-validation.
-    # For example, if you set cv=5, the dataset will be divided into 5 equal parts,
-    # and the hyperparameter tuning process will be performed five times,
-    # with each part serving as the validation set once and the rest as the training set.
-    X_train, X_validation, y_train, y_validation = train_test_split(scaled_features, labels, test_size=0.3)
-
-    # X_validation, X_test, y_validation, y_test = train_test_split(X_test, y_test, test_size=0.5)
+    # split data in train and validation sets
+    X_train, X_validation, y_train, y_validation = train_test_split(scaled_features, labels, test_size=0.2)
 
     # list of models to be used for the regression
     model_list = [SGDRegressor, # model 1
@@ -287,9 +265,9 @@ if __name__ == "__main__":
                   RandomForestRegressor, # model 3
                   GradientBoostingRegressor] # model 4
     
-    #model_list = [GradientBoostingRegressor]
-    
-    # grid list of dictonaries for model optimization. Each dictionary for the corresponding model
+    # model_list = [RandomForestRegressor] # model 1
+
+    # grid list of dictonaries for model optimization, one dict for each model
     parameter_grid_list = [
         {
         'alpha': [0.001, 0.01, 0.1], # model 1
@@ -297,31 +275,40 @@ if __name__ == "__main__":
         'loss': ['squared_error', 'huber', 'epsilon_insensitive'],
         'learning_rate':['constant', 'adaptive'],
         'eta0': [0.001, 0.01],
-        'max_iter': [10**4, 10**5,  10**6]}, 
-        {
-        'max_depth': [None, 10, 20], # model 2
-        'min_samples_split': [2, 5],
-        'min_samples_leaf': [1, 2],
-        'splitter': ['best', 'random']
+        'max_iter': [10**5]
         },
         {
-        'n_estimators': [10, 50, 100], # model 3
-        'max_depth': [None, 10, 20, 30],
+        'max_depth': [None, 5, 10, 15],
         'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4]
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': [None, 'sqrt', 'log2'],
+        'ccp_alpha': [0.0, 0.1, 0.2],
         },
         {
-        'n_estimators': [50, 100, 200], # model 4
-        'learning_rate': [0.01, 0.1, 0.2],
+        'n_estimators': [50, 100, 200], # model 3
+        'max_depth': [None, 10, 30],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        },
+        {
+        'n_estimators': [10, 50, 100, 200], # model 4
+        'learning_rate': [0.001, 0.01, 0.1],
          'max_depth': [10, 20, 30],
-         'min_samples_split': [2, 3, 4],
-         'min_samples_leaf': [1, 2, 4]
+        'min_samples_split': [2, 5, 10],
+         'min_samples_leaf': [1, 2, 4],
          }
         ]
     
+    # parameter_grid_list = [
+    #     {'n_estimators': [50, 100, 200], # model 4
+    #     'max_depth': [3, 5, 10],
+    #     'min_samples_leaf': [4, 8],
+    #     'min_samples_split': [2, 4]
+    #      }]
+
     # evaluate all models in the model list according to the parameters in the grid
     # for each model type, save the best
-    evaluate_all_models(model_list, parameter_grid_list, X_train, X_test, y_train, y_test)
+    evaluate_all_models(model_list, parameter_grid_list, X_train, X_validation, y_train, y_validation)
     
     # find the best overall model for regression
-    best_model, best_performance, best_hyperparams = find_best_model(search_directory = './models/regression/')
+    #best_model, best_performance, best_hyperparams = find_best_model(search_directory = './models/regression/')

@@ -71,7 +71,7 @@ def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_
     test_accuracy = accuracy_score(y_pred, y_train)
 
     # Train the best model on the test dataset and evaluate performance
-    best_model.fit(X_test, y_test)
+    best_model.fit(X_test, y_test) # TODO: NON ESSERE BESTIA
     y_pred = best_model.predict(X_test)
     print(y_pred)
     # calculate performance metrics
@@ -90,7 +90,7 @@ def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_
                   "Validation Accuracy ": validation_accuracy,
                   "Test Accuracy": test_accuracy,
                   "Test Precision": test_precision,
-                  "Test Recall": test_recall
+                  "Test Recall": test_recall,
                   "Test F1": test_f1}
 
     return model_info
