@@ -148,6 +148,16 @@ class database_utils():
         df = df.drop(columns=["Price_Night"])
         # df = df.drop(columns=["Price_Night", "guests"])
         return df
+    
+    def remove_price_night_outliers(df):
+        Price_Night_percentile = np.percentile(df['Price_Night'], 90, method='midpoint')
+        df_Price_Night_without_ouliers = df[df['Price_Night'] < Price_Night_percentile]
+        return df_Price_Night_without_ouliers
+    
+    def price_night_outliers_only(df):
+        Price_Night_percentile = np.percentile(df['Price_Night'], 90, method='midpoint')
+        df_Price_Night_without_ouliers = df[df['Price_Night'] > Price_Night_percentile]
+        return df_Price_Night_without_ouliers
 
     def load_airbnb(df, label="label", numeric_only=False):
         """
@@ -181,3 +191,9 @@ if __name__ == "__main__":
 
     df_clean_one_hot_encoding_reduce_skew = database_utils.reduce_skewness(df_clean_one_hot_encoding)
     df_clean_one_hot_encoding_reduce_skew.to_csv("./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_skewness_red.csv")
+
+    df_clean_one_hot_encoding_remove_price_night_outliers = database_utils.remove_price_night_outliers(df_clean_one_hot_encoding)
+    df_clean_one_hot_encoding_remove_price_night_outliers.to_csv("./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_remove_price_night_outliers.csv")
+
+    df_clean_one_hot_encoding_price_night_outliers_only = database_utils.price_night_outliers_only(df_clean_one_hot_encoding)
+    df_clean_one_hot_encoding_price_night_outliers_only.to_csv("./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_price_night_outliers_only.csv")

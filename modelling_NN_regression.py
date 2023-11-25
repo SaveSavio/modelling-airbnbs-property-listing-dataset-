@@ -43,7 +43,7 @@ class AirbnbNightlyPriceRegressionDataset(Dataset):
         return len(self.features)
 
 
-def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, shuffle=True):    
+def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, train_batch_size=32, shuffle=True):    
     """
         Dataloader function that
             - splits the data into test, train and validation datasets
@@ -68,8 +68,9 @@ def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, batch_size=32, 
     train_dataset, validation_dataset, test_dataset = random_split(dataset, [train_size, validation_size, test_size])
 
     # use torch DataLoader on all sets
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
+    train_loader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=shuffle)
     # use full batch for validation and testing
+    # validation and test loaders are not shuffled
     validation_loader = DataLoader(validation_dataset, batch_size=len(validation_dataset), shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
 
@@ -107,7 +108,7 @@ class NN(torch.nn.Module):
         return self.layers(X)
 
 
-def train(model, train_loader, validation_loader, optimizer='Adam', learning_rate='0.001', epochs=10):
+def train(model, train_loader, validation_loader, optimizer='Adam', learning_rate='0.01', epochs=10):
     """
         Training function for the Neural Network        
         Parameters:
@@ -126,7 +127,7 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
     elif optimizer == 'SGD':
         optimizer = torch.optim.SGD(params=model.parameters(), lr=learning_rate)
     else:
-        raise ValueError("Currently supporting 'Adam' optimizer only")
+        raise ValueError("Currently supporting 'Adam' and 'SGD' optimizers only")
 
     writer = SummaryWriter() # Tensorboard class initialization
     batch_idx = 0 # initalize outside the epochs loop so to create an index for the writer class
@@ -171,7 +172,9 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
 def validate(model, dataset):
     """
         Performs a forward pass and returns loss and inference time
-        
+        Paramters:
+            - an instance of the model class
+            - the validation data loader
         Returns:
             - the loss MSE
             - inference time
@@ -183,11 +186,10 @@ def validate(model, dataset):
         inference_stop_time = time.time() # time taken to perform a forward pass on a batch of features
         inference_time = inference_stop_time - inference_start_time
         validation_loss = F.mse_loss(prediction, labels)
-        #r_squared = r2_score(prediction, labels)
-        r_squared = 0
+        r2_score = r_squared(prediction, labels)
         print("\nValidation loss rmse: ", np.sqrt(validation_loss.item()))
     
-    return validation_loss, inference_time, r_squared
+    return validation_loss, inference_time, r2_score
 
 
 def get_nn_config(config_file_path='nn_config.yaml'):
@@ -223,7 +225,7 @@ def save_model(model, config,
     hyperparameters_file = '/hyperparameters.json'
     metrics_file = '/metrics.json'
 
-    metrics = {'RMSE_loss': RMSE_loss, 'R_squared': R_squared, 'validation_loss': validation_loss, 'training_duration': training_duration, 'interference_latency': inference_latency}
+    metrics = {'training_loss': RMSE_loss, 'validation_loss': validation_loss, 'R_squared': R_squared, 'training_duration': training_duration, 'interference_latency': inference_latency}
 
     with open(model_path+hyperparameters_file, 'w') as json_file:
         json.dump(config, json_file) 
@@ -332,15 +334,15 @@ if __name__ == "__main__":
     # initialize an instance of the class which creates a PyTorch dataset
     dataset = AirbnbNightlyPriceRegressionDataset(dataset_path=dataset_path, label=label)
     
-    train_loader, validation_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
+    train_loader, validation_loader, test_loader = data_loader(dataset, train_batch_size=32, shuffle=True)
     
     grid = {
         "input_dim": [len(dataset[0][0])],
         "inner_width" :[len(dataset[0][0])],
-        "learning_rate": [0.01, 0.001],
-        "depth": [1, 2],
-        "batch size": [32],
-        "epochs": [20],
+        "learning_rate": [0.1, 0.01],
+        "depth": [1, 2, 3],
+        "batch size": [8, 16, 32],
+        "epochs": [30],
         "optimizer": ['Adam', 'SGD']
         }
     

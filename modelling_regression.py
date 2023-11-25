@@ -138,7 +138,7 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
     validation_r2 = r2_score(y_validation, y_val_pred)
     validation_mae = mean_absolute_error(y_validation, y_val_pred)
 
-    prediction_csv = pd.DataFrame({'y_validation': y_validation, 'y_prediction': np.exp(y_val_pred)})
+    prediction_csv = pd.DataFrame({'y_validation': y_validation, 'y_prediction': y_val_pred})
     prediction_csv.to_csv (r'prediction.csv', index=False, header=True)
 
     # create a dictionary containing: best hyperparameters and performance metrics
@@ -176,7 +176,7 @@ def save_model(model, model_filename: str, folder_path: str, model_info: dict):
       json.dump(model_info, json_file)
     
 
-def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X_validation, y_train, y_validation):
+def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X_validation, y_train, y_validation, directory):
     """
         Evaluates all models in the model list.
         Each model is evaluated according to a grid list by tune_regression_model_hyperparameters function
@@ -194,8 +194,8 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
                                                                   X_train, X_validation, y_train, y_validation)
         
         # define model naming strategy and saving folder path
-        model_filename = 'best_'+model.__name__
-        task_folder = 'models/regression/'+model.__name__+'/'
+        model_filename = 'best_' + model.__name__
+        task_folder = directory + model.__name__+'/'
 
         save_model(model, model_filename=model_filename,
                    folder_path=task_folder, model_info=model_performance)
@@ -243,8 +243,14 @@ def find_best_model(search_directory = './models/regression'):
 
 
 if __name__ == "__main__":
+    
     # data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
     data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv"
+    #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_remove_price_night_outliers.csv"
+    #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_price_night_outliers_only.csv"
+
+    directory = './models/regression/full_dataset'
+
     df = pd.read_csv(data_path) # load the previously cleaned data
 
     label = 'Price_Night' # define labels and, subsequently, features
@@ -301,7 +307,7 @@ if __name__ == "__main__":
     
     # evaluate all models in the model list according to the parameters in the grid
     # for each model type, save the best
-    evaluate_all_models(model_list, parameter_grid_list, X_train, X_validation, y_train, y_validation)
+    evaluate_all_models(model_list, parameter_grid_list, X_train, X_validation, y_train, y_validation, directory=directory)
     
     # find the best overall model for regression
-    #best_model, best_performance, best_hyperparams = find_best_model(search_directory = './models/regression/')
+    best_model, best_performance, best_hyperparams = find_best_model(search_directory=directory)
