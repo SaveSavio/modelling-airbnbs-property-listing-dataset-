@@ -40,8 +40,8 @@ def features_scaling(df, columns_to_scale_index, label):
 
 
 def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
-                                              X_train, X_test, y_train, y_test,
-                                              scoring="accuracy", random_state=1):
+                                              X_train, X_validation, y_train, y_validation,
+                                              scoring="accuracy", random_state=3):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
@@ -54,44 +54,35 @@ def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_
             - a dictionary of its performance metrics.
     """
 
-    grid_search = GridSearchCV(model_class_obj(random_state=random_state),
+    grid_search = GridSearchCV(model_class_obj(),
                                param_grid=parameters_grid,
-                               scoring=scoring, cv=5, n_jobs=-1)
+                               scoring=scoring, cv=10, verbose=0, n_jobs=-1)
 
-    grid_search.fit(X_train, y_train)
+    grid_search.fit(X_train, y_train) # fit the gridsearch on the training set
 
-    # Get the best hyperparameters and the best model
-    best_hyperparams = grid_search.best_params_
-    best_model = grid_search.best_estimator_
+    best_hyperparams = grid_search.best_params_ # Parameter setting that gave the best results on the hold out data
+    best_model = grid_search.best_estimator_ # estimator which gave highest score (or smallest loss if specified) on the left out data.
+    best_score = -grid_search.best_score_ # Mean cross-validated score of the best_estimator
 
-    # validation accuracy
-    # Train the best model on the test dataset and evaluate performance
-    best_model.fit(X_train, y_train)
-    y_pred = best_model.predict(X_train)
-    test_accuracy = accuracy_score(y_pred, y_train)
-
-    # Train the best model on the test dataset and evaluate performance
-    best_model.fit(X_test, y_test) # TODO: NON ESSERE BESTIA
-    y_pred = best_model.predict(X_test)
-    print(y_pred)
-    # calculate performance metrics
-    test_precision = precision_score(y_test, y_pred, average=None)
-    test_recall = recall_score(y_test, y_pred, average=None)
-    test_accuracy = accuracy_score(y_test, y_pred)
-    test_f1 = f1_score(y_test, y_pred)
+    y_val_pred = best_model.predict(X_validation)
+    # calculate performance metrics on the validation dataset
+    validation_accuracy = accuracy_score(y_validation, y_val_pred)
+    validation_precision = precision_score(y_validation, y_val_pred, average=None)
+    validation_recall = recall_score(y_validation, y_val_pred, average=None)
+    validation_f1 = f1_score(y_validation, y_val_pred)
 
     # change these types from ndarray to list for saving to json
     test_precision = list(test_precision)
     test_recall = list(test_recall)
 
-
     # create a dictionary containing: best hyperparameters and performance metrics
     model_info = {"best hyperparameters": best_hyperparams,
-                  "Validation Accuracy ": validation_accuracy,
-                  "Test Accuracy": test_accuracy,
-                  "Test Precision": test_precision,
-                  "Test Recall": test_recall,
-                  "Test F1": test_f1}
+                  "Training Accuracy ": best_score,
+                  "Validation Accuracy": validation_accuracy,
+                  "Test Precision": validation_precision,
+                  "Test Recall": validation_recall,
+                  "Test F1": validation_f1}
+    print("model info: ", model_info)
 
     return model_info
 
