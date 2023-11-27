@@ -1,1 +1,0 @@
-{"best hyperparameters": {"max_depth": 30, "min_samples_leaf": 4, "min_samples_split": 2, "n_estimators": 50}, "training_RMSE": 96.55282071630242, "validation_RMSE": 91.09993073592658, "validation_R^2": 0.531905137402714, "validation_MAE": 58.66207756811987}

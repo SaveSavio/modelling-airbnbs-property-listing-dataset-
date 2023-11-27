@@ -85,7 +85,7 @@ and returns:
 
 Optionally, it is possible to use a custom_tune_regression_model_hyperparameters that performs the same task but explicitly performing the model tuning without calling GridSearchCV.
 
-### Regression models: performance
+### Regression models: full dataset performance
 We have tested the capability of different regressors in predicting the "Price_Night" feature. For more information on the feature, please refer to the Exploratory Data Analysis Jupyter notebook.
 
 Four estimators from the sklearn libraries were tested.
@@ -101,22 +101,42 @@ For each estimator, a hyperparameters grid was set and evaluated with a "brute f
 1) Ranked from best to worst, based on the score on the test set:
 
 
-| Estimator | Training RMSE | Validation RMSE | Test R^2 | Test MAE |
+| Estimator | Training RMSE | Validation RMSE | Validation R^2 | Validation MAE |
 |----------|----------|----------|----------|----------|
-| SDGRegressor | 96.17 | 98.43 | 0.47 | 61.33 |
-| DecisionTreeRegressor | 100.19 | 109.68 | 0.34 | 69.48 |
-| RandomForestRegressor | 95.76 | 96.54 | 0.49 | 59.38 |
-| GradientBoostingRegressor | 100.52 | 101.413 | 0.44 |  64.43 |
+| SDGRegressor | 97.01 | 94.92 | 0.41 | 61.31 |
+| DecisionTreeRegressor | 100.29 | 107.97 | 0.24 | 69.33 |
+| RandomForestRegressor | 92.51 | 98.52 | 0.37 | 62.83 |
+| GradientBoostingRegressor | 94.43 | 111.40 | 0.19 |  66.18 |
 
 - The linear SGDRegressor is the baseline for our evaluation:
-  - has a validation RMSE of >95$
-  - R^2 is 0.47 meaning that only 47% of the Price/Night variance is explained by this model.
-- The other 3 models perform relatively close, with RandomForestRegressor showing marginally the best performance:
-  - validation RMSE 96$
-  - R^2 of 0.49.
+  - has a validation RMSE of 97$
+  - R^2 is 0.41 meaning that only 41% of the Price/Night variance is explained by this model.
 
-It appears the regression models performance is limited by the amount of information provided by the data.
+  "best hyperparameters": {"alpha": 0.1, "eta0": 0.001, "learning_rate": "adaptive", "loss": "squared_error", "max_iter": 100000, "penalty": "l2"}
+
+- The other 3 models performance is close, with RandomForestRegressor showing marginally the best performance:
+  - validation RMSE 92$
+  - R^2 of 0.37.
+
+It appears the regression models performance is limited by the amount of information provided by the numerical data.
 The R^2 is always below 0.5, meaning our models have limited ability to explain the variability in the label.
+
+### Regression models: outliers
+![Boxplot](/price_night_boxplot.png)
+
+The plot above showes the data are quite right skewed. Quite a few listings above the 3rd quartile. In order to improve the RMSE and yet use the numerical data only, we have split the data into a dataset without "Price_Night" outliers. The strategy consists in removing the data above the 90th-percentile (89 examples in total).
+
+A dataset containing only the outliers is created as well. We report the results for the SDG regressor (baseline) and the best performer RandomForestRegressor.
+
+| Estimator | Training RMSE | Validation RMSE | Test R^2 | Test MAE |
+|----------|----------|----------|----------|----------|
+| SDGRegressor w/o outliers| 49.61 | 44.34 | 0.29 | 35.33 |
+| SDGRegressor outliers only | 173.66 | 184.83 | 0.1673 | 127.81 |
+| RandomForestRegressor w/o outliers | 49.20 | 45.10 | 0.26 | 35.97 |
+| RandomForestRegressor outliers only | 165.67 | 180.15 | 0.21 | 128.79 |
+
+As expected, the RMSE is reduced when removing a portion of the outliers from the dataset.
+It is debatable whether this approach can be useful or not in the real world.
 
 ## Classification models
 A framework analogous to regression - contained in <u>modelling_classification.py</u> - has been developed for a classification scenario.

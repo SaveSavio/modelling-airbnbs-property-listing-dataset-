@@ -163,6 +163,8 @@ def save_model(model, model_filename: str, folder_path: str, model_info: dict):
     """
 
     full_model_path = folder_path + model_filename
+    print("full_model_path: ")
+    print(full_model_path)
 
     if os.path.isdir(folder_path) == False:
         os.mkdir(folder_path)
@@ -243,71 +245,78 @@ def find_best_model(search_directory = './models/regression'):
 
 
 if __name__ == "__main__":
+
+    data_paths = ["./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv",
+                 "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_remove_price_night_outliers.csv",
+                 "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_price_night_outliers_only.csv"]
     
-    # data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
-    data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv"
-    #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_remove_price_night_outliers.csv"
-    #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_price_night_outliers_only.csv"
+    directories = ['./models/regression/full_dataset',
+                 './models/regression/outliers_removed',
+                 './models/regression/outliers']
 
-    directory = './models/regression/full_dataset'
+    for idx in range(len(data_paths)):
+        data_path = data_paths[idx]
+        directory = directories[idx]
 
-    df = pd.read_csv(data_path) # load the previously cleaned data
+        df = pd.read_csv(data_path) # load the previously cleaned data
 
-    label = 'Price_Night' # define labels and, subsequently, features
-    features, labels = dbu.load_airbnb(df, label=label, numeric_only=True)
-    # create a list of numerical features
-    features_to_scale = ['guests', 'beds', 'bathrooms', 'Price_Night', 'Cleanliness_rating',
-                            'Accuracy_rating', 'Communication_rating', 'Location_rating',
-                            'Check-in_rating', 'Value_rating', 'amenities_count', 'bedrooms']
-    # apply features scaling
-    scaled_features = features_scaling(features, features_to_scale, label)
+        label = 'Price_Night' # define labels and, subsequently, features
 
-    # split data in train and validation sets
-    X_train, X_validation, y_train, y_validation = train_test_split(scaled_features, labels, test_size=0.3)
+        features, labels = dbu.load_airbnb(df, label=label, numeric_only=True)
+        
+        features_to_scale = [ # create a list of numerical features
 
-    # list of models to be used for the regression
-    model_list = [SGDRegressor, # model 1
-                  DecisionTreeRegressor, # model 2
-                  RandomForestRegressor, # model 3
-                  GradientBoostingRegressor] # model 4
-    
-    # model_list = [RandomForestRegressor] # model 1
+            'guests', 'beds', 'bathrooms', 'Price_Night', 'Cleanliness_rating',
+                                'Accuracy_rating', 'Communication_rating', 'Location_rating',
+                                'Check-in_rating', 'Value_rating', 'amenities_count', 'bedrooms']
+        
+        scaled_features = features_scaling(features, features_to_scale, label) # apply features scaling
 
-    # grid list of dictonaries for model optimization, one dict for each model
-    parameter_grid_list = [
-        {
-        'alpha': [0.001, 0.01, 0.1], # model 1
-        'penalty': ['l2', 'l1', 'elasticnet'],
-        'loss': ['squared_error'],
-        'learning_rate':['constant', 'adaptive'],
-        'eta0': [0.001, 0.01],
-        'max_iter': [10**5]
-        },
-        {
-        'max_depth': [None, 5, 10, 15],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        'max_features': [None, 'sqrt', 'log2'],
-        'ccp_alpha': [0.0, 0.1, 0.2],
-        },
-        {
-        'n_estimators': [50, 100, 200], # model 3
-        'max_depth': [None, 10, 30],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        },
-        {
-        'n_estimators': [10, 50, 100, 200], # model 4
-        'learning_rate': [0.001, 0.01, 0.1],
-         'max_depth': [None, 10, 30],
-        'min_samples_split': [2, 5, 10],
-         'min_samples_leaf': [1, 2, 4],
-         }
-        ]
-    
-    # evaluate all models in the model list according to the parameters in the grid
-    # for each model type, save the best
-    evaluate_all_models(model_list, parameter_grid_list, X_train, X_validation, y_train, y_validation, directory=directory)
-    
-    # find the best overall model for regression
-    best_model, best_performance, best_hyperparams = find_best_model(search_directory=directory)
+        X_train, X_validation, y_train, y_validation = train_test_split( # split data in train and validation sets
+            scaled_features, labels, test_size=0.3)
+
+        # list of models to be used for the regression
+        model_list = [SGDRegressor, # model 1
+                    DecisionTreeRegressor, # model 2
+                    RandomForestRegressor, # model 3
+                    GradientBoostingRegressor] # model 4
+        
+        parameter_grid_list = [ # grid list for model optimization, one dict for each model
+
+            {
+            'alpha': [0.001, 0.01, 0.1], # model 1
+            'penalty': ['l2', 'l1', 'elasticnet'],
+            'loss': ['squared_error'],
+            'learning_rate':['constant', 'adaptive'],
+            'eta0': [0.001, 0.01],
+            'max_iter': [10**5]
+            },
+            {
+            'max_depth': [None, 5, 10, 15],
+            'min_samples_split': [2, 5, 10],
+            'min_samples_leaf': [1, 2, 4],
+            'max_features': [None, 'sqrt', 'log2'],
+            'ccp_alpha': [0.0, 0.1, 0.2],
+            },
+            {
+            'n_estimators': [50, 100, 200], # model 3
+            'max_depth': [None, 10, 30],
+            'min_samples_split': [2, 5, 10],
+            'min_samples_leaf': [1, 2, 4],
+            },
+            {
+            'n_estimators': [10, 50, 100, 200], # model 4
+            'learning_rate': [0.001, 0.01, 0.1],
+            'max_depth': [None, 10, 30],
+            'min_samples_split': [2, 5, 10],
+            'min_samples_leaf': [1, 2, 4],
+            }
+            ]
+        
+        evaluate_all_models( # evaluate all models for grid, save the best model for each type
+            model_list, parameter_grid_list,
+            X_train, X_validation, y_train, y_validation,
+            directory=directory)
+        
+        # find the best overall model for regression
+        # best_model, best_performance, best_hyperparams = find_best_model(search_directory=directory)

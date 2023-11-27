@@ -179,6 +179,7 @@ class database_utils():
 
 
 if __name__ == "__main__":
+    
     df = pd.read_csv("./airbnb-property-listings/tabular_data/listing.csv")
     df_clean = database_utils.remove_rows_with_missing_ratings(df)
     df_clean = database_utils.combine_description_strings(df_clean)
@@ -189,8 +190,8 @@ if __name__ == "__main__":
     df_clean_one_hot_encoding = database_utils.location_one_hot_encoding(df_clean_one_hot_encoding)
     df_clean_one_hot_encoding.to_csv("./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv")
 
-    df_clean_one_hot_encoding_reduce_skew = database_utils.reduce_skewness(df_clean_one_hot_encoding)
-    df_clean_one_hot_encoding_reduce_skew.to_csv("./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_skewness_red.csv")
+    #df_clean_one_hot_encoding_reduce_skew = database_utils.reduce_skewness(df_clean_one_hot_encoding)
+    #df_clean_one_hot_encoding_reduce_skew.to_csv("./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_skewness_red.csv")
 
     df_clean_one_hot_encoding_remove_price_night_outliers = database_utils.remove_price_night_outliers(df_clean_one_hot_encoding)
     df_clean_one_hot_encoding_remove_price_night_outliers.to_csv("./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_remove_price_night_outliers.csv")
