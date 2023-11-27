@@ -24,8 +24,8 @@ On the data, cleaned according to the project requirements, a simple EDA was per
 1) to better understand the dataset and stimulate curiosity
 1) to improve predictions by either regression, classification or neural networks.
 
-The results can be read directly on the Jupyter Notebook <u>exploratory_data_analysis.ipynb</u>
-
+The results can be read directly on the Jupyter Notebook <u>exploratory_data_analysis.ipynb</u> available at this link:
+[Exploratory Data Analysis](./exploratory_data_analysis.ipynb)
 
 ## Data Preparation
 The AirBnb listings data comes in form of:

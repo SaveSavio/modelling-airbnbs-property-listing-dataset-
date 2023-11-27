@@ -62,26 +62,26 @@ def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_
 
     best_hyperparams = grid_search.best_params_ # Parameter setting that gave the best results on the hold out data
     best_model = grid_search.best_estimator_ # estimator which gave highest score (or smallest loss if specified) on the left out data.
-    best_score = -grid_search.best_score_ # Mean cross-validated score of the best_estimator
+    best_score = grid_search.best_score_ # Mean cross-validated score of the best_estimator
 
     y_val_pred = best_model.predict(X_validation)
     # calculate performance metrics on the validation dataset
     validation_accuracy = accuracy_score(y_validation, y_val_pred)
     validation_precision = precision_score(y_validation, y_val_pred, average=None)
     validation_recall = recall_score(y_validation, y_val_pred, average=None)
-    validation_f1 = f1_score(y_validation, y_val_pred)
+    validation_f1 = f1_score(y_validation, y_val_pred, average='weighted')
 
     # change these types from ndarray to list for saving to json
-    test_precision = list(test_precision)
-    test_recall = list(test_recall)
+    validation_precision = list(validation_precision)
+    validation_recall = list(validation_recall)
 
     # create a dictionary containing: best hyperparameters and performance metrics
     model_info = {"best hyperparameters": best_hyperparams,
                   "Training Accuracy ": best_score,
                   "Validation Accuracy": validation_accuracy,
-                  "Test Precision": validation_precision,
-                  "Test Recall": validation_recall,
-                  "Test F1": validation_f1}
+                  "Validation Precision": validation_precision,
+                  "Validation Recall": validation_recall,
+                  "Validation F1": validation_f1}
     print("model info: ", model_info)
 
     return model_info
@@ -156,26 +156,32 @@ def find_best_model(search_directory = './models/classification'):
     for json_file in json_files:
             with open(json_file, "r") as file:
                 data = json.load(file)
-                if data['Accuracy'] > max_accuracy:
-                    max_accuracy = data['Accuracy']
+                if data['Validation Accuracy'] > max_accuracy:
+                    max_accuracy = data['Validation Accuracy']
                     best_model = json_file[:-4] + 'pkl'
-                    best_validation_accuracy = data.get('Validation Accuracy')
-                    best_test_accuracy = data.get('Test Accuracy')
+                    test_accuracy = data.get('Test Accuracy')
+                    validation_accuracy = data.get('Validation Accuracy')
+                    validation_precision = data.get("Validation Precision")
+                    validation_recall = data.get("Validation Recall")
+                    validation_f1 = data.get("Validation F1")
                     best_hyperparameters = data.get('best hyperparameters')
     
     # loads the model
     best_model = joblib.load(best_model)
     print("Best model loaded: ", best_model,
-          "\nValidation accuracy: ", best_validation_accuracy,
-          "\nTest accuracy: ", best_test_accuracy, 
-        "\nHyper-parameters: ", best_hyperparameters)
-    return best_model, best_performance, best_hyperparameters
+          "\Test accuracy: ", test_accuracy,
+          "\nValidation accuracy: ", validation_accuracy,
+          "\nValidation precision: ", validation_precision,
+          "\nValidation recall: ", validation_recall,
+          "\nValidation F1: ", validation_f1,
+          "\nHyper-parameters: ", best_hyperparameters)
+    
+    return test_accuracy, validation_accuracy, validation_precision, validation_recall, validation_f1
 
 
 if __name__ == "__main__":
     data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
     #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv"
-
 
     # load the previously cleaned data
     df = pd.read_csv(data_path)

@@ -108,7 +108,7 @@ def features_scaling(df, columns_to_scale_index, label):
 
 
 def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid: dict,
-    X_train, X_validation, y_train, y_validation, random_state = 3):
+    X_train, X_validation, y_train, y_validation, random_state=3):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
