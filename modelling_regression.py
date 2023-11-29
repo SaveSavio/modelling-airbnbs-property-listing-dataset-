@@ -230,7 +230,6 @@ def find_best_model(search_directory = './models/regression'):
                     validation_rmse = data.get('validation_RMSE')
                     validation_r2 = data.get('validation_R^2')
                     validation_mae = data.get('validation_MAE')
-                    best_performance = [validation_rmse, train_rmse]
                     best_hyperparameters = data.get('best hyperparameters')
     
     # loads the model
@@ -241,7 +240,8 @@ def find_best_model(search_directory = './models/regression'):
           "\nvalidation_RMSE: ", validation_rmse,
           "\nValidation_R^2: ", validation_r2,
           "\nValidation_MAE:", validation_mae)
-    return best_model, best_performance, best_hyperparameters
+    
+    return best_model, best_hyperparameters, train_rmse, validation_rmse, validation_r2, validation_mae
 
 
 if __name__ == "__main__":
@@ -319,4 +319,4 @@ if __name__ == "__main__":
             directory=directory)
         
         # find the best overall model for regression
-        # best_model, best_performance, best_hyperparams = find_best_model(search_directory=directory)
+        best_model, best_hyperparameters, train_rmse, validation_rmse, validation_r2, validation_mae = find_best_model(search_directory=directory)

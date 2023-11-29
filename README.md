@@ -149,20 +149,24 @@ model_list = [LogisticRegression, # model 1
                   GradientBoostingClassifier, # model 3
                   DecisionTreeClassifier] # model 4
 ```
-The chosen Key Performance Indicator is 'Accuracy':
+The chosen Key Performance Indicator is 'Accuracy'. Accuracy measures the proportion of correctly classified cases from the total number of objects in the dataset. To compute the metric, divide the number of correct predictions by the total number of predictions made by the model
+(https://www.evidentlyai.com/classification-metrics/multi-class-metrics).
+
 $$
 \text{Accuracy} = \frac{\text{Number of Correct Predictions}}{\text{Total Number of Predictions}} \
 $$
 
-Results in the table below
-| Estimator | Validation Accuracy | Test Accuracy | 
-|----------|----------|----------|
-| LogisticRegression | 0.43 | 0.36 |
-| RandomForestClassifier | 0.79 | 0.84 |
-| GradientBoostingClassifier | 0.76 | 0.92 |
-| DecisionTreeClassifier | 0.59 | 0.60 |
+We also report Precision, Recall, F1 score, all macro-averaged.
 
-The Logistic Regressor is our baseline model for simplicity and for performance. It also shows a certain a tendency to overfit. The Gradient Boosting and the Random Forest regressor outperform the other model giving an accuracy close to 0.9.
+Results in the table below
+| Estimator | Training Accuracy | Validation Accuracy | Validation Precision | Validation Recall | Validation F1
+|----------|----------|----------|----------|----------|----------|
+| LogisticRegression | 0.43 | 0.36 | | | |
+| RandomForestClassifier | 0.79 | 0.84 | | | | 
+| GradientBoostingClassifier | 0.76 | 0.92 | | | | 
+| DecisionTreeClassifier | 0.59 | 0.60 | | | | 
+
+The Logistic Regressor is our baseline model for simplicity and for performance.
 
 ## Neural Network Regression
 
@@ -262,14 +266,6 @@ This framework is aimed to describe the workflow of Machine Learning. It uses an
 
 Main focus is on the training and tuning of models.
 
-1) It should be noticed that no deep EDA was performed on the data. That would be a necessary step to better understand the dataset
+1) The performance of either regression or classification models is limited by the amount of information used.
 
-1) Clearly some improvements to the accuracy could be made by treating outliers and reducing the skewness of some data.
-
-A deeper use of the provided information:
-
-3) A large chunk of information is discarded by not using the categorical variables. In fact, when predicting the price x night, the listing category would have been useful.
-
-4) A multimodal system that employs the information in the pictures to increase the prediction accuracy
-
-5) A multimodal system that employs the information in the text description
+4) A multimodal system that employs the information in the pictures  as well as in the text description is expected to peform better than the current framework.

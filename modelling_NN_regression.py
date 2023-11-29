@@ -8,7 +8,8 @@ import pandas as pd
 import time
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
-from torchmetrics.functional import r2_score
+from sklearn.metrics import r2_score
+from torchmetrics.regression import R2Score
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 from tabular_data import database_utils as dbu
@@ -143,9 +144,11 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
             # print(batch_idx)
             features, labels = batch
             prediction = model(features) # forward step and loss calculation
+            
             loss = F.mse_loss(prediction, labels)
             loss.backward() # loss differentiation (backward step)
             optimizer.step() # optimization step
+
             optimizer.zero_grad() # set gradient to zero
 
             writer.add_scalar('training loss rmse', # TensorFlow writer: add a step
@@ -156,17 +159,17 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
         training_time += training_stop_time - training_start_time # calculate the training time
         print("\nTraining time: ", training_time)
 
-        validation_loss, inference_time, r_squared = validate(model=model, dataset=validation_loader)
-        cumulative_inference_latency += inference_time
+        validation_loss, validation_inference_time, validation_r2 = validate(model=model, dataset=validation_loader)
+        cumulative_inference_latency += validation_inference_time
 
         writer.add_scalar('validation loss rmse', # TensorFlow writer
                              np.sqrt(validation_loss.item()), epoch) 
     
     #calculate the batch inference latency as an average across all epochs
     average_inference_latency = cumulative_inference_latency/epochs
-    print("\nAverage inference latency:", average_inference_latency)
+    #print("\nAverage inference latency:", average_inference_latency)
 
-    return np.sqrt(loss.item()), r_squared, np.sqrt(validation_loss.item()), training_time, average_inference_latency
+    return np.sqrt(loss.item()), np.sqrt(validation_loss.item()), validation_r2, training_time, average_inference_latency
 
 
 def validate(model, dataset):
@@ -186,10 +189,15 @@ def validate(model, dataset):
         inference_stop_time = time.time() # time taken to perform a forward pass on a batch of features
         inference_time = inference_stop_time - inference_start_time
         validation_loss = F.mse_loss(prediction, labels)
-        r2_score = r_squared(prediction, labels)
+        
+        labels = labels.view(-1)  # Flatten the true values to a 1D tensor
+        prediction = prediction.view(-1)  # Flatten the predicted values to a 1D tensor
+        #validation_r2 = r2_score(prediction, labels)
+        validation_r2 = 0
         print("\nValidation loss rmse: ", np.sqrt(validation_loss.item()))
-    
-    return validation_loss, inference_time, r2_score
+        #print("Validation R^2: ", validation_r2.item())
+
+    return validation_loss, inference_time, validation_r2
 
 
 def get_nn_config(config_file_path='nn_config.yaml'):
@@ -250,8 +258,12 @@ def r_squared(predictions, labels):
     sum_of_squared_residuals = torch.sum((labels - predictions)**2)  # SSR sum of squared residuals
     total_sum_of_squares = torch.sum((labels - mean_labels)**2)      # SST total sum of squares
 
+    print("mean of labels: ", mean_labels)
+    print("sum of squared residuals: ", sum_of_squared_residuals)
+    print("total sum of squares: ", total_sum_of_squares)
+
     r2 = 1 - (sum_of_squared_residuals / total_sum_of_squares)
-    #print("Coefficient of determination: ", r2)
+    print("Coefficient of determination: ", r2)
 
     return r2.item()
 
@@ -336,14 +348,24 @@ if __name__ == "__main__":
     
     train_loader, validation_loader, test_loader = data_loader(dataset, train_batch_size=32, shuffle=True)
     
+    # grid = {
+    #     "input_dim": [len(dataset[0][0])],
+    #     "inner_width" :[len(dataset[0][0])],
+    #     "learning_rate": [0.1, 0.01],
+    #     "depth": [1, 2, 3],
+    #     "batch size": [8, 16, 32],
+    #     "epochs": [30],
+    #     "optimizer": ['Adam', 'SGD']
+    #     }
+    
     grid = {
         "input_dim": [len(dataset[0][0])],
-        "inner_width" :[len(dataset[0][0])],
-        "learning_rate": [0.1, 0.01],
-        "depth": [1, 2, 3],
-        "batch size": [8, 16, 32],
-        "epochs": [30],
-        "optimizer": ['Adam', 'SGD']
+        "inner_width" :[8],
+        "learning_rate": [0.01],
+        "depth": [2],
+        "batch size": [32],
+        "epochs": [15],
+        "optimizer": ['Adam']
         }
     
     find_best_nn(grid=grid, train_loader=train_loader, validation_loader=validation_loader, performance_indicator='rmse')
