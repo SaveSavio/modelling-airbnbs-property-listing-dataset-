@@ -156,17 +156,20 @@ $$
 \text{Accuracy} = \frac{\text{Number of Correct Predictions}}{\text{Total Number of Predictions}} \
 $$
 
-We also report Precision, Recall, F1 score, all macro-averaged.
+In the table below, we also report Precision, Recall, F1 score, all macro-averaged.
 
 Results in the table below
 | Estimator | Training Accuracy | Validation Accuracy | Validation Precision | Validation Recall | Validation F1
 |----------|----------|----------|----------|----------|----------|
-| LogisticRegression | 0.43 | 0.36 | | | |
-| RandomForestClassifier | 0.79 | 0.84 | | | | 
-| GradientBoostingClassifier | 0.76 | 0.92 | | | | 
-| DecisionTreeClassifier | 0.59 | 0.60 | | | | 
+| LogisticRegression | 0.40 | 0.37 | 0.39 | 0.37 | 0.36 |
+| GradientBoostingClassifier | 0.39 | 0.35 | 0.34 | 0.35 | 0.34 | 
+| RandomForestClassifier | 0.40 | 0.36 | 0.36 | 0.35 | 0.34 | 
+| DecisionTreeClassifier | 0.34 | 0.28 | 0.29 | 0.29 | 0.29 | 
 
-The Logistic Regressor is our baseline model for simplicity and for performance.
+The Logistic Regressor is our baseline model for simplicity and for performance. Yet is delivers, marginally, the best performance.
+Logistic Regressor hyperparameters: {"C": 1.0, "max_iter": 1000, "penalty": "l2", "solver": "liblinear"}
+
+All the models have a tendency to overfit. In that respect, the worst model is the DecisionTreeClassifier.
 
 ## Neural Network Regression
 

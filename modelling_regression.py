@@ -291,21 +291,21 @@ if __name__ == "__main__":
             'eta0': [0.001, 0.01],
             'max_iter': [10**5]
             },
-            {
+            { # model 2
             'max_depth': [None, 5, 10, 15],
             'min_samples_split': [2, 5, 10],
             'min_samples_leaf': [1, 2, 4],
             'max_features': [None, 'sqrt', 'log2'],
             'ccp_alpha': [0.0, 0.1, 0.2],
             },
-            {
-            'n_estimators': [50, 100, 200], # model 3
+            { # model 3
+            'n_estimators': [50, 100, 200], 
             'max_depth': [None, 10, 30],
             'min_samples_split': [2, 5, 10],
             'min_samples_leaf': [1, 2, 4],
             },
-            {
-            'n_estimators': [10, 50, 100, 200], # model 4
+            { # model 4
+            'n_estimators': [10, 50, 100, 200], 
             'learning_rate': [0.001, 0.01, 0.1],
             'max_depth': [None, 10, 30],
             'min_samples_split': [2, 5, 10],
