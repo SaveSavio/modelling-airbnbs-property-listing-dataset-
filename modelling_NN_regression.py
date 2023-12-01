@@ -9,7 +9,6 @@ import time
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 from sklearn.metrics import r2_score
-from torchmetrics.regression import R2Score
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 from tabular_data import database_utils as dbu
@@ -98,10 +97,10 @@ class NN(torch.nn.Module):
         # Input layer
         self.layers.add_module("input_layer", torch.nn.Linear(input_dim, inner_width))
          # Hidden layers
-        self.layers.add_module("relu1", torch.nn.ReLU())
-        for i in range(depth - 1):
+        self.layers.add_module("relu0", torch.nn.ReLU())
+        for i in range(depth-1):
             self.layers.add_module(f"hidden_layer{i}", torch.nn.Linear(inner_width, inner_width))
-            self.layers.add_module(f"relu{i + 1}",  torch.nn.ReLU())
+            self.layers.add_module(f"relu{i+1}",  torch.nn.ReLU())
         # Output layer
         self.layers.add_module("output_layer",  torch.nn.Linear(inner_width, output_dim))
 
@@ -143,6 +142,7 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
         for batch in train_loader: # inner loop: training
             # print(batch_idx)
             features, labels = batch
+            labels = labels.unsqueeze(1)
             prediction = model(features) # forward step and loss calculation
             
             loss = F.mse_loss(prediction, labels)
@@ -157,7 +157,7 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
 
         training_stop_time = time.time()
         training_time += training_stop_time - training_start_time # calculate the training time
-        print("\nTraining time: ", training_time)
+        #print("\nTraining time: ", training_time)
 
         validation_loss, validation_inference_time, validation_r2 = validate(model=model, dataset=validation_loader)
         cumulative_inference_latency += validation_inference_time
@@ -188,13 +188,16 @@ def validate(model, dataset):
         prediction = model(features)
         inference_stop_time = time.time() # time taken to perform a forward pass on a batch of features
         inference_time = inference_stop_time - inference_start_time
+        labels = labels.unsqueeze(1)
+
+
         validation_loss = F.mse_loss(prediction, labels)
         
-        labels = labels.view(-1)  # Flatten the true values to a 1D tensor
-        prediction = prediction.view(-1)  # Flatten the predicted values to a 1D tensor
-        #validation_r2 = r2_score(prediction, labels)
+        #labels = labels.view(-1)  # Flatten the true values to a 1D tensor
+        #prediction = prediction.view(-1)  # Flatten the predicted values to a 1D tensor
+        #validation_r2 = r2_score(prediction.item(), labels.item())
         validation_r2 = 0
-        print("\nValidation loss rmse: ", np.sqrt(validation_loss.item()))
+        print("Validation loss rmse: ", np.sqrt(validation_loss.item()))
         #print("Validation R^2: ", validation_r2.item())
 
     return validation_loss, inference_time, validation_r2
@@ -305,11 +308,11 @@ def find_best_nn(grid, train_loader, validation_loader, performance_indicator = 
     for config in hyperparameters_grid:        
         model = NN(**config) # initialize an instance of the NN class with config parameters
         # TODO: it might be those parameters are already in the model.parameters() and not needed at all
-        #print(config)
-        #print(model)
-        #print(model.parameters())
-        # perform the model training
-        loss, R_squared, validation_loss, training_time, inference_latency = train(
+        print(config)
+        print(model)
+        print(model.parameters())
+        
+        loss, validation_loss, validation_r2, training_time, inference_latency = train(
                                                                                 model,
                                                                                 train_loader=train_loader,
                                                                                 validation_loader=validation_loader,
@@ -321,7 +324,7 @@ def find_best_nn(grid, train_loader, validation_loader, performance_indicator = 
         if validation_loss < best_performance:
             best_training_loss = loss
             best_validation_loss = validation_loss
-            best_R_squared = R_squared
+            best_R_squared = validation_r2
             best_model = model
             best_model_hyperparameters = config
             best_model_training_time = training_time
@@ -343,26 +346,17 @@ if __name__ == "__main__":
 
     label = "Price_Night"
 
-    # initialize an instance of the class which creates a PyTorch dataset
+    # initialize an instance of the class that creates a PyTorch dataset
     dataset = AirbnbNightlyPriceRegressionDataset(dataset_path=dataset_path, label=label)
     
     train_loader, validation_loader, test_loader = data_loader(dataset, train_batch_size=32, shuffle=True)
     
-    # grid = {
-    #     "input_dim": [len(dataset[0][0])],
-    #     "inner_width" :[len(dataset[0][0])],
-    #     "learning_rate": [0.1, 0.01],
-    #     "depth": [1, 2, 3],
-    #     "batch size": [8, 16, 32],
-    #     "epochs": [30],
-    #     "optimizer": ['Adam', 'SGD']
-    #     }
     
     grid = {
         "input_dim": [len(dataset[0][0])],
-        "inner_width" :[8],
-        "learning_rate": [0.01],
-        "depth": [2],
+        "inner_width" :[8, 16],
+        "learning_rate": [0.1, 0.01],
+        "depth": [1, 2, 3],
         "batch size": [32],
         "epochs": [15],
         "optimizer": ['Adam']

@@ -8,7 +8,6 @@ import pandas as pd
 import time
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
-from torchmetrics.functional import r2_score
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 from tabular_data import database_utils as dbu

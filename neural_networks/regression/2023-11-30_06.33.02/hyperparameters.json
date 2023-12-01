@@ -1,0 +1,1 @@
+{"input_dim": 23, "inner_width": 23, "learning_rate": 0.01, "depth": 2, "batch size": 32, "epochs": 10, "optimizer": "Adam"}
