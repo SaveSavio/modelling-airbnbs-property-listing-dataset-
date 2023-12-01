@@ -8,8 +8,10 @@ import pandas as pd
 import time
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
-from sklearn.metrics import r2_score
+#from sklearn.metrics import r2_score
 import torch.nn.functional as F
+from torchmetrics.functional import r2_score
+
 from torch.utils.tensorboard import SummaryWriter
 from tabular_data import database_utils as dbu
 import typing
@@ -140,15 +142,13 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
         training_start_time = time.time()
 
         for batch in train_loader: # inner loop: training
-            # print(batch_idx)
+
             features, labels = batch
             labels = labels.unsqueeze(1)
             prediction = model(features) # forward step and loss calculation
-            
             loss = F.mse_loss(prediction, labels)
             loss.backward() # loss differentiation (backward step)
             optimizer.step() # optimization step
-
             optimizer.zero_grad() # set gradient to zero
 
             writer.add_scalar('training loss rmse', # TensorFlow writer: add a step
@@ -157,7 +157,6 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
 
         training_stop_time = time.time()
         training_time += training_stop_time - training_start_time # calculate the training time
-        #print("\nTraining time: ", training_time)
 
         validation_loss, validation_inference_time, validation_r2 = validate(model=model, dataset=validation_loader)
         cumulative_inference_latency += validation_inference_time
@@ -165,9 +164,8 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
         writer.add_scalar('validation loss rmse', # TensorFlow writer
                              np.sqrt(validation_loss.item()), epoch) 
     
-    #calculate the batch inference latency as an average across all epochs
+    # calculate the batch inference latency as an average across all epochs
     average_inference_latency = cumulative_inference_latency/epochs
-    #print("\nAverage inference latency:", average_inference_latency)
 
     return np.sqrt(loss.item()), np.sqrt(validation_loss.item()), validation_r2, training_time, average_inference_latency
 
@@ -189,16 +187,11 @@ def validate(model, dataset):
         inference_stop_time = time.time() # time taken to perform a forward pass on a batch of features
         inference_time = inference_stop_time - inference_start_time
         labels = labels.unsqueeze(1)
-
-
         validation_loss = F.mse_loss(prediction, labels)
-        
-        #labels = labels.view(-1)  # Flatten the true values to a 1D tensor
-        #prediction = prediction.view(-1)  # Flatten the predicted values to a 1D tensor
-        #validation_r2 = r2_score(prediction.item(), labels.item())
-        validation_r2 = 0
+        validation_r2 = r2_score(prediction, labels)
+        validation_r2 = validation_r2.item()
         print("Validation loss rmse: ", np.sqrt(validation_loss.item()))
-        #print("Validation R^2: ", validation_r2.item())
+        print("Validation R^2: ", validation_r2)
 
     return validation_loss, inference_time, validation_r2
 
