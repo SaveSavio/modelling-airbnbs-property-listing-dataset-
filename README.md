@@ -138,6 +138,22 @@ A dataset containing only the outliers is created as well. We report the results
 As expected, the RMSE is reduced when removing a portion of the outliers from the dataset.
 It is debatable whether this approach can be useful or not in the real world.
 
+### Regression models: Neural Networks Regression
+
+The file <u>modelling_NN_regression.py</u> implements a neural networks model to predict the "Price_Night" from numerical features (comprising one-hot-encoded).
+
+The deep model performs well as well as the RandomForestRegressor anyway it does not show a clear advantage.
+
+| Estimator | Training RMSE | Validation RMSE | Validation R^2 | Validation MAE |
+|----------|----------|----------|----------|----------|
+| SDGRegressor | 97.01 | 94.92 | 0.41 | 61.31 |
+| DecisionTreeRegressor | 100.29 | 107.97 | 0.24 | 69.33 |
+| RandomForestRegressor | 92.51 | 98.52 | 0.37 | 62.83 |
+| GradientBoostingRegressor | 94.43 | 111.40 | 0.19 |  66.18 |
+| Neural Network | 93.14 | 85.82 | 0.43 |  65.35 |
+
+The training_duration for the best model is 1.75s. Inference_latency equals to 5.76e-05s.
+
 ## Classification models
 A framework analogous to regression - contained in <u>modelling_classification.py</u> - has been developed for a classification scenario.
 
@@ -171,98 +187,6 @@ Logistic Regressor hyperparameters: {"C": 1.0, "max_iter": 1000, "penalty": "l2"
 
 All the models have a tendency to overfit. In that respect, the worst model is the DecisionTreeClassifier.
 
-## Neural Network Regression
-
-The file <u>modelling_pytorch_Linear.py</u> is an implementation of Linear Regression using PyTorch framework.
-This "shallow" model is just an intermediate step to the build of a deep learning model.
-
-The file <u>modelling_NN.py</u> contains the framework to make predictions on the AirBnB database
-with Neural Networks with PyTorch.
-
-## Neural Network Workflow
-
-We will follow the process inside the block:
-```python
-if __name__ == "__main__":
-```
-
-### Data Creation
-At first, set the path to the cleaned tabular data
-```python
-dataset_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
-```
-and decide which label we want to predict
-```python
-label = "Price_Night"
-```
-Then initialize an instance of the PyTorch dataset, which creates a 
-Tensor for the features and an array for the labels
-```python
-dataset = AirbnbNightlyPriceRegressionDataset(dataset_path=dataset_path, label=label)
-```
-The dataset is then passed to the DataLoader which is embedded in the data_loader function which takes the dataset in and returns it split in training, test and validation sets.
-```python
-train_loader, validation_loader, test_loader = data_loader(dataset, batch_size=32, shuffle=True)
-```
-
-### Modelling and model tuning
-We will now describe the most general case of usage, that in which we set a grid for the hyperparameters tuning. Here's an example of the grid:
-```python
-grid = {
-    "learning_rate": [0.01, 0.001],
-    "depth": [2, 3],
-    "hidden layer width": [8, 16],
-    "batch size": [16, 32],
-    "epochs": [10, 20]
-    }
-```
-Once the grid is set, it can be used as a parameter in the function
-```python
-def find_best_nn(grid, performance_indicator = "rmse"):
-```
-that sets the workflow for the modelling framework. It calls
-```python
-def generate_nn_configs()
-```
-that uses a generator expression to yield all of the possible combinations in the grid. For each of the possible hyperparameters sets, it initialized an instance of the neural network class
-```python
-# initialize an instance of the NN class
-class NN(torch.nn.Module)
-# with the grid parameters
-model = NN(**config)
-```
-The NN class inherits from torch.nn.Module and defines a configurable, fully connected Neural Network. It uses ReLU activation function and has the following configurable parameters:
-- input layer dimension
-- model depth
-- hidden layers width
-- output layer dimension
-
-```python
-def find_best_nn(grid, performance_indicator = "rmse"):
-```
-then trains each NN, finds the best performing based on the performance indicator and saves it in a folder alonside two dictionaries:
-- hyperparameters.json
-- metrics.json
-The first contains the best model hyperparameters whilst the second contains all the metrics of the model. An example below:
-```python
-{"RMSE_loss": 32656.9140625,
-"R_squared": -14.05229663848877,
-"validation_loss": 15421.5537109375, 
-"training_duration": 4.939751386642456, 
-"interference_latency": 0.00010931015014648438}
-```
-
-The training function takes in the model class, the number of epoch, the optimizer (currently only supports 'Adam').
-
-```python
-def train(model, epochs = 10, optimizer='Adam', **kwargs):
-```
-It also creates a Tensorflow instance that allows to track the model training performance  on the tuning (every batch) and validation (every epoch) sets.
-This function returns the performance paramters that will be stores in the
-metrics.json file
-```python
-return loss.item(), R_squared, validation_loss.item(), training_time average_inference_latency
-```
 
 ## Next steps
 This framework is aimed to describe the workflow of Machine Learning. It uses an Occam Razor approach hence starting with simplest Linear Regression model then evolving to Neural Networks.

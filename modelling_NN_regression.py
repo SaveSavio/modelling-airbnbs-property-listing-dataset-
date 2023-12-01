@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 #from sklearn.metrics import r2_score
 import torch.nn.functional as F
-from torchmetrics.functional import r2_score
+from torchmetrics.functional import r2_score, mean_absolute_error
 
 from torch.utils.tensorboard import SummaryWriter
 from tabular_data import database_utils as dbu
@@ -158,7 +158,7 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
         training_stop_time = time.time()
         training_time += training_stop_time - training_start_time # calculate the training time
 
-        validation_loss, validation_inference_time, validation_r2 = validate(model=model, dataset=validation_loader)
+        validation_loss, validation_inference_time, validation_r2, validation_mae = validate(model=model, dataset=validation_loader)
         cumulative_inference_latency += validation_inference_time
 
         writer.add_scalar('validation loss rmse', # TensorFlow writer
@@ -167,7 +167,7 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
     # calculate the batch inference latency as an average across all epochs
     average_inference_latency = cumulative_inference_latency/epochs
 
-    return np.sqrt(loss.item()), np.sqrt(validation_loss.item()), validation_r2, training_time, average_inference_latency
+    return np.sqrt(loss.item()), np.sqrt(validation_loss.item()), validation_r2, validation_mae, training_time, average_inference_latency
 
 
 def validate(model, dataset):
@@ -188,12 +188,13 @@ def validate(model, dataset):
         inference_time = inference_stop_time - inference_start_time
         labels = labels.unsqueeze(1)
         validation_loss = F.mse_loss(prediction, labels)
-        validation_r2 = r2_score(prediction, labels)
-        validation_r2 = validation_r2.item()
+        validation_r2 = r2_score(prediction, labels).item()
+        validation_mae = mean_absolute_error(prediction, labels).item()
         print("Validation loss rmse: ", np.sqrt(validation_loss.item()))
         print("Validation R^2: ", validation_r2)
+        print("Validation MAE: ", validation_mae)
 
-    return validation_loss, inference_time, validation_r2
+    return validation_loss, inference_time, validation_r2, validation_mae
 
 
 def get_nn_config(config_file_path='nn_config.yaml'):
@@ -215,7 +216,8 @@ def get_nn_config(config_file_path='nn_config.yaml'):
 
 
 def save_model(model, config,
-               RMSE_loss=None, validation_loss=None, R_squared=None,
+               RMSE_loss=None, validation_loss=None,
+               R_squared=None, validation_mae = None,
                training_duration=None, inference_latency=None,
                folder_path="./neural_networks/regression/"):
     
@@ -229,39 +231,13 @@ def save_model(model, config,
     hyperparameters_file = '/hyperparameters.json'
     metrics_file = '/metrics.json'
 
-    metrics = {'training_loss': RMSE_loss, 'validation_loss': validation_loss, 'R_squared': R_squared, 'training_duration': training_duration, 'interference_latency': inference_latency}
+    metrics = {'training_loss': RMSE_loss, 'validation_loss': validation_loss, 'R_squared': R_squared, 'validation_mae': validation_mae, 'training_duration': training_duration, 'inference_latency': inference_latency}
 
     with open(model_path+hyperparameters_file, 'w') as json_file:
         json.dump(config, json_file) 
 
     with open(model_path+metrics_file, 'w') as json_file:
         json.dump(metrics, json_file) 
-
-
-def r_squared(predictions, labels):
-    """
-    Calculate the R-squared (coefficient of determination) between predictions and labels.
-
-    Args:
-        predictions (torch.Tensor): Tensor containing predicted values.
-        labels (torch.Tensor): Tensor containing true labels.
-
-    Returns:
-        float: R-squared score.
-    """
-    
-    mean_labels = torch.mean(labels)
-    sum_of_squared_residuals = torch.sum((labels - predictions)**2)  # SSR sum of squared residuals
-    total_sum_of_squares = torch.sum((labels - mean_labels)**2)      # SST total sum of squares
-
-    print("mean of labels: ", mean_labels)
-    print("sum of squared residuals: ", sum_of_squared_residuals)
-    print("total sum of squares: ", total_sum_of_squares)
-
-    r2 = 1 - (sum_of_squared_residuals / total_sum_of_squares)
-    print("Coefficient of determination: ", r2)
-
-    return r2.item()
 
 
 def generate_nn_configs(hyperparameters: typing.Dict[str, typing.Iterable]):
@@ -305,7 +281,7 @@ def find_best_nn(grid, train_loader, validation_loader, performance_indicator = 
         print(model)
         print(model.parameters())
         
-        loss, validation_loss, validation_r2, training_time, inference_latency = train(
+        loss, validation_loss, validation_r2, validation_mae, training_time, inference_latency = train(
                                                                                 model,
                                                                                 train_loader=train_loader,
                                                                                 validation_loader=validation_loader,
@@ -318,6 +294,7 @@ def find_best_nn(grid, train_loader, validation_loader, performance_indicator = 
             best_training_loss = loss
             best_validation_loss = validation_loss
             best_R_squared = validation_r2
+            best_model_MAE = validation_mae
             best_model = model
             best_model_hyperparameters = config
             best_model_training_time = training_time
@@ -326,6 +303,7 @@ def find_best_nn(grid, train_loader, validation_loader, performance_indicator = 
     save_model(best_model, best_model_hyperparameters,
                RMSE_loss=best_training_loss,
                validation_loss=best_validation_loss,
+               validation_mae=validation_mae,
                R_squared=best_R_squared,
                training_duration=best_model_training_time,
                inference_latency=best_model_inference_latency,
