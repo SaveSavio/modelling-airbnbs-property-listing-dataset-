@@ -95,10 +95,10 @@ class Classification(torch.nn.Module):
         # Input layer
         self.layers.add_module("input_layer", torch.nn.Linear(input_dim, inner_width))
          # Hidden layers
-        self.layers.add_module("relu1", torch.nn.ReLU())
+        self.layers.add_module("relu0", torch.nn.ReLU())
         for i in range(depth - 1):
             self.layers.add_module(f"hidden_layer{i}", torch.nn.Linear(inner_width, inner_width))
-            self.layers.add_module(f"relu{i + 1}",  torch.nn.ReLU())
+            self.layers.add_module(f"relu{i+1}",  torch.nn.ReLU())
         # Output layer
         # TODO: output dimension has to be the same as the number of categories
         self.layers.add_module("output_layer",  torch.nn.Linear(inner_width, output_dim))
@@ -142,7 +142,7 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
             # print(batch_idx)
             features, labels = batch
             prediction = model(features) # forward step and loss calculation
-            loss = F.binary_cross_entropy(prediction, labels)
+            loss = F.cross_entropy(prediction, labels)
             loss.backward() # loss differentiation (backward step)
             optimizer.step() # optimization step
             optimizer.zero_grad() # set gradient to zero
