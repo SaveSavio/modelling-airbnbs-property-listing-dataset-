@@ -112,7 +112,9 @@ For each estimator, a hyperparameters grid was set and evaluated with a "brute f
   - has a validation RMSE of 97$
   - R^2 is 0.41 meaning that only 41% of the Price/Night variance is explained by this model.
 
-  "best hyperparameters": {"alpha": 0.1, "eta0": 0.001, "learning_rate": "adaptive", "loss": "squared_error", "max_iter": 100000, "penalty": "l2"}
+Best hyperparameters:
+
+"alpha": 0.1, "eta0": 0.001, "learning_rate": "adaptive", "loss": "squared_error", "max_iter": 100000, "penalty": "l2"
 
 - The other 3 models performance is close, with RandomForestRegressor showing marginally the best performance:
   - validation RMSE 92$
@@ -135,8 +137,8 @@ A dataset containing only the outliers is created as well. We report the results
 | RandomForestRegressor w/o outliers | 49.20 | 45.10 | 0.26 | 35.97 |
 | RandomForestRegressor outliers only | 165.67 | 180.15 | 0.21 | 128.79 |
 
-As expected, the RMSE is reduced when removing a portion of the outliers from the dataset.
-It is debatable whether this approach can be useful or not in the real world.
+As expected, the RMSE is reduced when removing a portion of the outliers from the dataset as the model targets labels with lower variability.
+It is debatable whether this approach could be useful or not in the real world when the label values is not known yet.
 
 ### Regression models: Neural Networks Regression
 
@@ -187,7 +189,6 @@ Logistic Regressor hyperparameters: {"C": 1.0, "max_iter": 1000, "penalty": "l2"
 
 All the models have a tendency to overfit. In that respect, the worst model is the DecisionTreeClassifier.
 
-
 ## Next steps
 This framework is aimed to describe the workflow of Machine Learning. It uses an Occam Razor approach hence starting with simplest Linear Regression model then evolving to Neural Networks.
 
@@ -195,4 +196,4 @@ Main focus is on the training and tuning of models.
 
 1) The performance of either regression or classification models is limited by the amount of information used.
 
-4) A multimodal system that employs the information in the pictures  as well as in the text description is expected to peform better than the current framework.
+4) A multimodal system that employs the information in the pictures as well as in the text description is expected to peform better than the current framework.

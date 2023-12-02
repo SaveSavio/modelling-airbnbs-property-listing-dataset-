@@ -131,28 +131,31 @@ def tune_regression_model_hyperparameters(mode_class_obj: Type, parameters_grid:
 
     best_hyperparams = grid_search.best_params_ # Parameter setting that gave the best results on the hold out data
     best_model = grid_search.best_estimator_ # estimator which gave highest score (or smallest loss if specified) on the left out data.
-    best_rmse = -grid_search.best_score_ # Mean cross-validated score of the best_estimator
+    test_rmse = -grid_search.best_score_ # Mean cross-validated score of the best_estimator
 
     y_val_pred = best_model.predict(X_validation) # predict on the validation set
     validation_rmse = np.sqrt(mean_squared_error(y_validation, y_val_pred))
     validation_r2 = r2_score(y_validation, y_val_pred)
     validation_mae = mean_absolute_error(y_validation, y_val_pred)
 
-    prediction_csv = pd.DataFrame({'y_validation': y_validation, 'y_prediction': y_val_pred})
-    prediction_csv.to_csv (r'prediction.csv', index=False, header=True)
+    #prediction_csv = pd.DataFrame({'y_validation': y_validation, 'y_prediction': y_val_pred})
+    #prediction_csv.to_csv (r'prediction.csv', index=False, header=True)
 
     # create a dictionary containing: best hyperparameters and performance metrics
-    model_info = {"best hyperparameters": best_hyperparams,
-                  "training_RMSE": best_rmse,
-                  "validation_RMSE": validation_rmse,
-                  "validation_R^2": validation_r2,
-                  "validation_MAE": validation_mae}
-    print("model info: ", model_info)
+    model_hyperparameters = {"best hyperparameters": best_hyperparams}
+    model_performance = {"training_RMSE": test_rmse,
+                         "validation_RMSE": validation_rmse,
+                         "validation_R^2": validation_r2,
+                         "validation_MAE": validation_mae}
 
-    return model_info
+    return model_hyperparameters, model_performance
 
 
-def save_model(model, model_filename: str, folder_path: str, model_info: dict):
+def save_model(model,
+               model_filename: str,
+               folder_path: str,
+               model_hyperparameters: dict,
+               model_performance: dict):
     """
         Saves a regression model in the desired folder path, alongside its performance indicators
         Parameters:
@@ -162,21 +165,23 @@ def save_model(model, model_filename: str, folder_path: str, model_info: dict):
             - dictionary containing the summary of the model perfomance on the dataset
     """
 
-    full_model_path = folder_path + model_filename
-    print("full_model_path: ")
-    print(full_model_path)
+    model_path = folder_path + model_filename
 
     if os.path.isdir(folder_path) == False:
         os.mkdir(folder_path)
     
-    joblib.dump(model, full_model_path + '.pkl')
+    joblib.dump(model, model_path + '.pkl')
     print(f"Model saved to {model_filename}")
         
     # Write the dictionary to the JSON file
-    full_performance_path = full_model_path + '.json'
-    with open(full_performance_path, "w") as json_file:
-      json.dump(model_info, json_file)
-    
+    performance_path = model_path + '_hyperparameters.json'
+    with open(performance_path, "w") as json_file:
+      json.dump(model_hyperparameters, json_file)
+
+    performance_path = model_path + '_metrics.json'
+    with open(performance_path, "w") as json_file:
+      json.dump(model_performance, json_file)
+
 
 def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X_validation, y_train, y_validation, directory):
     """
@@ -192,15 +197,17 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
     for index, model in enumerate(model_list):
         print('Estimator: ', model, '\nHyperparameters grid list: ', parameter_grid_list[index])
 
-        model_performance = tune_regression_model_hyperparameters(model, parameter_grid_list[index],
+        model_hyperparameters, model_performance = tune_regression_model_hyperparameters(model, parameter_grid_list[index],
                                                                   X_train, X_validation, y_train, y_validation)
         
         # define model naming strategy and saving folder path
-        model_filename = 'best_' + model.__name__
+        model_filename = 'Best_' + model.__name__
         task_folder = directory + model.__name__+'/'
 
         save_model(model, model_filename=model_filename,
-                   folder_path=task_folder, model_info=model_performance)
+                   folder_path=task_folder,
+                   model_hyperparameters=model_hyperparameters,
+                   model_performance=model_performance)
 
 
 def find_best_model(search_directory = './models/regression'):
@@ -214,29 +221,34 @@ def find_best_model(search_directory = './models/regression'):
     """
     
     # Define the file extension you want to search for
-    file_extension = '*.json'
+    metrics_suffix = '*metrics.json'
+    hyperparameters_suffix = '*hyperparameters.json'
 
     # Use glob to find all JSON files in the specified directory and its subdirectories
-    json_files = glob.glob(os.path.join(search_directory, '**', file_extension), recursive=True)
+    metrics_files = glob.glob(os.path.join(search_directory, '**', metrics_suffix), recursive=True)
+    hyperparameters_files = glob.glob(os.path.join(search_directory, '**', hyperparameters_suffix), recursive=True)
 
     min_rmse = np.inf
-    for json_file in json_files:
-            with open(json_file, "r") as file:
-                data = json.load(file)
-                if data['validation_RMSE'] < min_rmse:
-                    min_rmse = data['validation_RMSE']
-                    best_model = json_file[:-4] + 'pkl'
-                    train_rmse = data.get('training_RMSE')
-                    validation_rmse = data.get('validation_RMSE')
-                    validation_r2 = data.get('validation_R^2')
-                    validation_mae = data.get('validation_MAE')
-                    best_hyperparameters = data.get('best hyperparameters')
+    for idx in range(len(metrics_files)):
+        with open(metrics_files[idx], "r") as metrics_file:
+            metrics = json.load(metrics_file)
+        with open(hyperparameters_files[idx], "r") as hyperparameters_file:
+            hyperparameters = json.load(hyperparameters_file)
+            if metrics['validation_RMSE'] < min_rmse:
+                
+                best_model = metrics_files[idx][:-13] + '.pkl'
+                print(metrics)
+                validation_rmse = metrics['validation_RMSE']
+                train_rmse = metrics['training_RMSE']
+                validation_r2 = metrics['validation_R^2']
+                validation_mae = metrics['validation_MAE']
+                best_hyperparameters = hyperparameters
     
     # loads the model
     best_model = joblib.load(best_model)
     print("Best model loaded: ", best_model,
-          "\nHyper-parameters: ", best_hyperparameters,
-          "\ntrain_RMSE: ", train_rmse,
+          "\nHyper-parameters: ", best_hyperparameters['best hyperparameters'],
+          "\ntraining_RMSE: ", train_rmse,
           "\nvalidation_RMSE: ", validation_rmse,
           "\nValidation_R^2: ", validation_r2,
           "\nValidation_MAE:", validation_mae)
@@ -246,77 +258,72 @@ def find_best_model(search_directory = './models/regression'):
 
 if __name__ == "__main__":
 
-    data_paths = ["./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv",
-                 "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_remove_price_night_outliers.csv",
-                 "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_price_night_outliers_only.csv"]
+    data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding.csv"
+    #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_remove_price_night_outliers.csv",
+    #data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data_one-hot-encoding_price_night_outliers_only.csv"
     
-    directories = ['./models/regression/full_dataset',
-                 './models/regression/outliers_removed',
-                 './models/regression/outliers']
+    directory = './models/regression/'
 
-    for idx in range(len(data_paths)):
-        data_path = data_paths[idx]
-        directory = directories[idx]
+    df = pd.read_csv(data_path) # load the previously cleaned data
 
-        df = pd.read_csv(data_path) # load the previously cleaned data
+    label = 'Price_Night' # define labels and, subsequently, features
 
-        label = 'Price_Night' # define labels and, subsequently, features
+    features, labels = dbu.load_airbnb(df, label=label, numeric_only=True)
+    
+    features_to_scale = [ # create a list of numerical features
+                        'guests', 'beds', 'bathrooms', 'Price_Night', 'Cleanliness_rating',
+                        'Accuracy_rating', 'Communication_rating', 'Location_rating',
+                        'Check-in_rating', 'Value_rating', 'amenities_count', 'bedrooms'
+                        ]
+    
+    scaled_features = features_scaling(features, features_to_scale, label) # apply features scaling
 
-        features, labels = dbu.load_airbnb(df, label=label, numeric_only=True)
-        
-        features_to_scale = [ # create a list of numerical features
+    X_train, X_validation, y_train, y_validation = train_test_split( # split data in train and validation sets
+        scaled_features, labels, test_size=0.3)
 
-            'guests', 'beds', 'bathrooms', 'Price_Night', 'Cleanliness_rating',
-                                'Accuracy_rating', 'Communication_rating', 'Location_rating',
-                                'Check-in_rating', 'Value_rating', 'amenities_count', 'bedrooms']
-        
-        scaled_features = features_scaling(features, features_to_scale, label) # apply features scaling
-
-        X_train, X_validation, y_train, y_validation = train_test_split( # split data in train and validation sets
-            scaled_features, labels, test_size=0.3)
-
-        # list of models to be used for the regression
-        model_list = [SGDRegressor, # model 1
+    # list of models to be used for the regression
+    model_list = [SGDRegressor, # model 1
                     DecisionTreeRegressor, # model 2
                     RandomForestRegressor, # model 3
                     GradientBoostingRegressor] # model 4
-        
-        parameter_grid_list = [ # grid list for model optimization, one dict for each model
+    
+    parameter_grid_list = [ # grid list for model optimization, one dict for each model
 
-            {
-            'alpha': [0.001, 0.01, 0.1], # model 1
-            'penalty': ['l2', 'l1', 'elasticnet'],
-            'loss': ['squared_error'],
-            'learning_rate':['constant', 'adaptive'],
-            'eta0': [0.001, 0.01],
-            'max_iter': [10**5]
-            },
-            { # model 2
-            'max_depth': [None, 5, 10, 15],
-            'min_samples_split': [2, 5, 10],
-            'min_samples_leaf': [1, 2, 4],
-            'max_features': [None, 'sqrt', 'log2'],
-            'ccp_alpha': [0.0, 0.1, 0.2],
-            },
-            { # model 3
-            'n_estimators': [50, 100, 200], 
-            'max_depth': [None, 10, 30],
-            'min_samples_split': [2, 5, 10],
-            'min_samples_leaf': [1, 2, 4],
-            },
-            { # model 4
-            'n_estimators': [10, 50, 100, 200], 
-            'learning_rate': [0.001, 0.01, 0.1],
-            'max_depth': [None, 10, 30],
-            'min_samples_split': [2, 5, 10],
-            'min_samples_leaf': [1, 2, 4],
-            }
-            ]
-        
-        evaluate_all_models( # evaluate all models for grid, save the best model for each type
-            model_list, parameter_grid_list,
-            X_train, X_validation, y_train, y_validation,
-            directory=directory)
-        
-        # find the best overall model for regression
-        best_model, best_hyperparameters, train_rmse, validation_rmse, validation_r2, validation_mae = find_best_model(search_directory=directory)
+        {
+        'alpha': [0.001, 0.01, 0.1], # model 1
+        'penalty': ['l2', 'l1', 'elasticnet'],
+        'loss': ['squared_error'],
+        'learning_rate':['constant', 'adaptive'],
+        'eta0': [0.001, 0.01],
+        'max_iter': [10**5]
+        },
+        { # model 2
+        'max_depth': [None, 5, 10, 15],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': [None, 'sqrt', 'log2'],
+        'ccp_alpha': [0.0, 0.1, 0.2],
+        },
+        { # model 3
+        'n_estimators': [50, 100, 200], 
+        'max_depth': [None, 10, 30],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        },
+        { # model 4
+        'n_estimators': [10, 50, 100, 200], 
+        'learning_rate': [0.001, 0.01, 0.1],
+        'max_depth': [None, 10, 30],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        }
+        ]
+    
+    evaluate_all_models( # evaluate all models for grid, save the best model for each type
+        model_list, parameter_grid_list,
+        X_train, X_validation, y_train, y_validation,
+        directory=directory)
+    
+    # find the best overall model for regression
+    best_model, best_hyperparameters, train_rmse, validation_rmse, validation_r2, validation_mae = find_best_model(
+        search_directory=directory)

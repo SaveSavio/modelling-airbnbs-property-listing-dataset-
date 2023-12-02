@@ -39,9 +39,12 @@ def features_scaling(df, columns_to_scale_index, label):
     return df
 
 
-def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_grid: dict,
-                                              X_train, X_validation, y_train, y_validation,
-                                              scoring="accuracy", random_state=3):
+def tune_classification_model_hyperparameters(model_class_obj: Type,
+                                              parameters_grid: dict,
+                                              X_train, X_validation,
+                                              y_train, y_validation,
+                                              scoring="accuracy",
+                                              random_state=3):
     """
         A function designed to tune the regression model hyperparameters. Uses sklearn GridSearchCV.
         Paremeters:
@@ -72,18 +75,19 @@ def tune_classification_model_hyperparameters(model_class_obj: Type, parameters_
     validation_f1 = f1_score(y_validation, y_val_pred, average='macro')
 
     # create a dictionary containing: best hyperparameters and performance metrics
-    model_info = {"best hyperparameters": best_hyperparams,
-                  "training_accuracy ": best_score,
-                  "validation_accuracy": validation_accuracy,
-                  "validation_precision": validation_precision,
-                  "validation_recall": validation_recall,
-                  "validation_f1": validation_f1}
-    print("model info: ", model_info)
-
-    return model_info
+    model_hyperparameters = {"best hyperparameters": best_hyperparams}
+    model_performance = {"training_accuracy": best_score,
+                         "validation_accuracy": validation_accuracy,
+                         "validation_precision": validation_precision,
+                         "validation_recall": validation_recall,
+                         "validation_f1": validation_f1}
+    return model_hyperparameters, model_performance
 
 
-def save_model(model, model_filename: str, folder_path: str, model_info: dict):
+def save_model(model, model_filename: str,
+               folder_path: str,
+               model_hyperparameters: dict,
+               model_performance: dict):
     """
         Saves a regression model in the desired folder path, alongside its performance indicators
         Parameters:
@@ -93,19 +97,22 @@ def save_model(model, model_filename: str, folder_path: str, model_info: dict):
             - dictionary containing the summary of the model perfomance on the dataset
     """
 
-    full_model_path = folder_path + model_filename
+    model_path = folder_path + model_filename
 
     if os.path.isdir(folder_path) == False:
         os.mkdir(folder_path)
     
-    joblib.dump(model, full_model_path + '.pkl')
+    joblib.dump(model, model_path + '.pkl')
     print(f"Model saved to {model_filename}")
         
     # Write the dictionary to the JSON file
-    full_performance_path = full_model_path + '.json'
-    with open(full_performance_path, "w") as json_file:
-      print(model_info)
-      json.dump(model_info, json_file)
+    performance_path = model_path + '_hyperparameters.json'
+    with open(performance_path, "w") as json_file:
+      json.dump(model_hyperparameters, json_file)
+
+    performance_path = model_path + '_metrics.json'
+    with open(performance_path, "w") as json_file:
+      json.dump(model_performance, json_file)
     
 
 def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X_validation, y_train, y_validation):
@@ -122,59 +129,72 @@ def evaluate_all_models(model_list: list , parameter_grid_list: list, X_train, X
 
     for index, model in enumerate(model_list):
         print(model, parameter_grid_list[index])
-        model_performance = tune_classification_model_hyperparameters(model, parameter_grid_list[index],
+        model_hyperparameters, model_performance = tune_classification_model_hyperparameters(model, parameter_grid_list[index],
                                                                   X_train, X_validation, y_train, y_validation)
         
         # define model naming strategy and saving folder path
-        model_filename = 'best_'+model.__name__
+        model_filename = 'Best_'+model.__name__
         task_folder = 'models/classification/'+model.__name__+'/'
 
-        save_model(model, model_filename=model_filename,
-                   folder_path=task_folder, model_info=model_performance)
+        save_model(model,
+                   folder_path=task_folder,
+                   model_filename=model_filename,
+                   model_hyperparameters=model_hyperparameters,
+                   model_performance=model_performance)
 
 
 def find_best_model(search_directory = './models/classification'):
     """
-        Finds the best model amongst those in a folder path by comparing their rmse (evaluation metric)
+        Finds the best model amongst those in a folder path by comparing their evaluation metric.
+        The set evaluation metric is the RMSE on the validation dataset.
         Returns:
             - loaded model
             - a dictionary of its hyperparameters
             - a dictionary of its performance metrics.
     """
-
+    
     # Define the file extension you want to search for
-    file_extension = '*.json'
+    metrics_suffix = '*metrics.json'
+    hyperparameters_suffix = '*hyperparameters.json'
 
     # Use glob to find all JSON files in the specified directory and its subdirectories
-    json_files = glob.glob(os.path.join(search_directory, '**', file_extension), recursive=True)
+    metrics_files = glob.glob(os.path.join(search_directory, '**', metrics_suffix), recursive=True)
+    print("metrics: ", metrics_files)
+    hyperparameters_files = glob.glob(os.path.join(search_directory, '**', hyperparameters_suffix), recursive=True)
+    print("hyperparameters: ", hyperparameters_files)
 
-    max_accuracy = 0
-    for json_file in json_files:
-            with open(json_file, "r") as file:
-                data = json.load(file)
-                print("data: ", data)
-                if data['validation_accuracy'] > max_accuracy:
-                    max_accuracy = data['validation_accuracy']
-                    best_model = json_file[:-4] + 'pkl'
-                    best_hyperparameters = data.get('best hyperparameters')
-                    test_accuracy = data.get('test_accuracy')
-                    validation_accuracy = data.get('validation_accuracy')
-                    validation_precision = data.get("validation_precision")
-                    validation_recall = data.get("validation_recall")
-                    validation_f1 = data.get("validation_f1")
+
+    min_accuracy = 0
+    for idx in range(len(metrics_files)):
+        with open(metrics_files[idx], "r") as metrics_file:
+            metrics = json.load(metrics_file)
+            print(metrics)
+        with open(hyperparameters_files[idx], "r") as hyperparameters_file:
+            hyperparameters = json.load(hyperparameters_file)
+
+            if metrics['validation_accuracy'] > min_accuracy:
+                
+                best_model = metrics_files[idx][:-13] + '.pkl'
+                print(best_model)
+
+                training_accuracy = metrics['training_accuracy']
+                validation_accuracy = metrics['validation_accuracy']
+                validation_precision = metrics["validation_precision"]
+                validation_recall = metrics["validation_recall"]
+                validation_f1 = metrics["validation_f1"]
+                best_hyperparameters = hyperparameters
     
     # loads the model
     best_model = joblib.load(best_model)
     print("Best model loaded: ", best_model,
-          "\nHyper-parameters: ", best_hyperparameters,
-          "\Test accuracy: ", test_accuracy,
-          "\nValidation accuracy: ", validation_accuracy,
-          "\nValidation precision: ", validation_precision,
-          "\nValidation recall: ", validation_recall,
-          "\nValidation F1: ", validation_f1)
+          "\nHyper-parameters: ", best_hyperparameters['best hyperparameters'],
+          "\ntraining accuracy: ", training_accuracy,
+          "\nvalidation accuracy: ", validation_accuracy,
+          "\nvalidation precision: ", validation_precision,
+          "\nvalidation recall:", validation_recall,
+          "\nvalidation F1:", validation_f1)
     
-    return best_model, best_hyperparameters, test_accuracy, validation_accuracy, validation_precision, validation_recall, validation_f1
-
+    return best_model, best_hyperparameters, training_accuracy, validation_accuracy, validation_precision, validation_recall, validation_f1
 
 if __name__ == "__main__":
     data_path = "./airbnb-property-listings/tabular_data/clean_tabular_data.csv"
@@ -232,4 +252,4 @@ if __name__ == "__main__":
     # for each model type, save the best
     evaluate_all_models(model_list, param_grid_list, X_train, X_test, y_train, y_validation)
 
-best_model, best_hyperparameters, test_accuracy, validation_accuracy, validation_precision, validation_recall, validation_f1 = find_best_model()
+best_model, best_hyperparameters, training_accuracy, validation_accuracy, validation_precision, validation_recall, validation_f1 = find_best_model()

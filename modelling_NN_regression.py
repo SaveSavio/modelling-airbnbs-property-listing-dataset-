@@ -72,7 +72,6 @@ def data_loader(dataset, train_ratio=0.7, validation_ratio=0.15, train_batch_siz
     # use torch DataLoader on all sets
     train_loader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=shuffle)
     # use full batch for validation and testing
-    # validation and test loaders are not shuffled
     validation_loader = DataLoader(validation_dataset, batch_size=len(validation_dataset), shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
 
@@ -167,6 +166,8 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
     # calculate the batch inference latency as an average across all epochs
     average_inference_latency = cumulative_inference_latency/epochs
 
+     # create a dictionary containing: best hyperparameters and performance metrics
+
     return np.sqrt(loss.item()), np.sqrt(validation_loss.item()), validation_r2, validation_mae, training_time, average_inference_latency
 
 
@@ -231,7 +232,12 @@ def save_model(model, config,
     hyperparameters_file = '/hyperparameters.json'
     metrics_file = '/metrics.json'
 
-    metrics = {'training_loss': RMSE_loss, 'validation_loss': validation_loss, 'R_squared': R_squared, 'validation_mae': validation_mae, 'training_duration': training_duration, 'inference_latency': inference_latency}
+    metrics = {'training_loss': RMSE_loss,
+               'validation_loss': validation_loss,
+               'R_squared': R_squared,
+               'validation_mae': validation_mae,
+               'training_duration': training_duration,
+               'inference_latency': inference_latency}
 
     with open(model_path+hyperparameters_file, 'w') as json_file:
         json.dump(config, json_file) 
@@ -303,7 +309,7 @@ def find_best_nn(grid, train_loader, validation_loader, performance_indicator = 
     save_model(best_model, best_model_hyperparameters,
                RMSE_loss=best_training_loss,
                validation_loss=best_validation_loss,
-               validation_mae=validation_mae,
+               validation_mae=best_model_MAE,
                R_squared=best_R_squared,
                training_duration=best_model_training_time,
                inference_latency=best_model_inference_latency,
@@ -321,7 +327,6 @@ if __name__ == "__main__":
     dataset = AirbnbNightlyPriceRegressionDataset(dataset_path=dataset_path, label=label)
     
     train_loader, validation_loader, test_loader = data_loader(dataset, train_batch_size=32, shuffle=True)
-    
     
     grid = {
         "input_dim": [len(dataset[0][0])],

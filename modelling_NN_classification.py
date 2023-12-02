@@ -15,7 +15,6 @@ import typing
 from typing import Any
 import yaml
 
-# TODO: consider if this can be commonized between Classification & Regression
 class AirbnbNightlyPriceClassificationDataset(Dataset): 
     """
         Creates a PyTorch dataset from tabular data.
@@ -88,7 +87,7 @@ class Classification(torch.nn.Module):
                 when called on a set of features, returns a prediction (forward pass)
     """
 
-    def __init__(self, input_dim=9, output_dim=1, depth=1, inner_width=9, **kwargs): # TODO: confirm **kwargs necessity
+    def __init__(self, input_dim=9, output_dim=5, depth=1, inner_width=9, **kwargs): # TODO: confirm **kwargs necessity
         
         super().__init__()
         self.layers = torch.nn.Sequential() # define layers
@@ -107,7 +106,7 @@ class Classification(torch.nn.Module):
         return F.softmax(self.layers(X)) 
 
 
-def train(model, train_loader, validation_loader, optimizer='Adam', learning_rate='0.001', epochs=10):
+def train(model, train_loader, validation_loader, optimizer='Adam', learning_rate='0.01', epochs=10):
     """
         Training function for the Neural Network        
         Parameters:
@@ -139,7 +138,7 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
         training_start_time = time.time()
 
         for batch in train_loader: # inner loop: training
-            # print(batch_idx)
+
             features, labels = batch
             prediction = model(features) # forward step and loss calculation
             loss = F.cross_entropy(prediction, labels)
@@ -148,24 +147,24 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
             optimizer.zero_grad() # set gradient to zero
 
             writer.add_scalar('training loss rmse', # TensorFlow writer: add a step
-                              np.sqrt(loss.item()), batch_idx)
+                              loss.item(), batch_idx)
             batch_idx += 1 # TensorFlow writer: increase the index for next step
 
         training_stop_time = time.time()
         training_time += training_stop_time - training_start_time # calculate the training time
-        print("\nTraining time: ", training_time)
+        # print("\nTraining time: ", training_time)
 
         validation_loss, inference_time, r_squared = validate(model=model, dataset=validation_loader)
         cumulative_inference_latency += inference_time
 
         writer.add_scalar('validation loss rmse', # TensorFlow writer
-                             np.sqrt(validation_loss.item()), epoch) 
+                             validation_loss.item(), epoch) 
     
     #calculate the batch inference latency as an average across all epochs
     average_inference_latency = cumulative_inference_latency/epochs
-    print("\nAverage inference latency:", average_inference_latency)
+    #print("\nAverage inference latency:", average_inference_latency)
 
-    return np.sqrt(loss.item()), r_squared, np.sqrt(validation_loss.item()), training_time, average_inference_latency
+    return loss.item(), r_squared, validation_loss.item(), training_time, average_inference_latency
 
 
 def validate(model, dataset):
@@ -182,9 +181,8 @@ def validate(model, dataset):
         prediction = model(features)
         inference_stop_time = time.time() # time taken to perform a forward pass on a batch of features
         inference_time = inference_stop_time - inference_start_time
-        validation_loss = F.binary_cross_entropy(prediction, labels)
+        validation_loss = F.cross_entropy(prediction, labels)
         #r_squared = r2_score(prediction, labels)
-        r_squared = 0
         print("\nValidation loss rmse: ", np.sqrt(validation_loss.item()))
     
     return validation_loss, inference_time, r_squared
@@ -230,28 +228,6 @@ def save_model(model, config,
 
     with open(model_path+metrics_file, 'w') as json_file:
         json.dump(metrics, json_file) 
-
-
-def r_squared(predictions, labels):
-    """
-    Calculate the R-squared (coefficient of determination) between predictions and labels.
-
-    Args:
-        predictions (torch.Tensor): Tensor containing predicted values.
-        labels (torch.Tensor): Tensor containing true labels.
-
-    Returns:
-        float: R-squared score.
-    """
-    
-    mean_labels = torch.mean(labels)
-    sum_of_squared_residuals = torch.sum((labels - predictions)**2)  # SSR sum of squared residuals
-    total_sum_of_squares = torch.sum((labels - mean_labels)**2)      # SST total sum of squares
-
-    r2 = 1 - (sum_of_squared_residuals / total_sum_of_squares)
-    #print("Coefficient of determination: ", r2)
-
-    return r2.item()
 
 
 def generate_nn_configs(hyperparameters: typing.Dict[str, typing.Iterable]):
