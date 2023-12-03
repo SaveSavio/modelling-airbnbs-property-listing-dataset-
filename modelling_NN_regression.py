@@ -8,7 +8,6 @@ import pandas as pd
 import time
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
-#from sklearn.metrics import r2_score
 import torch.nn.functional as F
 from torchmetrics.functional import r2_score, mean_absolute_error
 
