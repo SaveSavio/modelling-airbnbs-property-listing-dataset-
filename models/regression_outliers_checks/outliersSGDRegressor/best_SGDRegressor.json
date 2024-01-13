@@ -1,0 +1,1 @@
+{"best hyperparameters": {"alpha": 0.1, "eta0": 0.001, "learning_rate": "adaptive", "loss": "squared_error", "max_iter": 100000, "penalty": "l2"}, "training_RMSE": 173.66022213478863, "validation_RMSE": 184.82634536007748, "validation_R^2": 0.1673157718553948, "validation_MAE": 127.80596174342838}

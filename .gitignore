@@ -1,5 +1,4 @@
 airbnb-property-listings/
-models/
 runs/
 data_cleaning.ipynb
 modelling.ipynb
@@ -10,3 +9,7 @@ modelling_NN_classification.py
 modelling_NN_layers_one_by_one.py
 exploratory_data_analysis.ipynb
 test_find_best_model.ipynb
+modelling_NN_classification.py
+multimodal_NN_trial.py
+modelling_pytorch_Linear.py
+cleaning.ipynb

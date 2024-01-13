@@ -1,0 +1,1 @@
+{"best hyperparameters": {"ccp_alpha": 0.2, "max_depth": 15, "max_features": "log2", "min_samples_leaf": 4, "min_samples_split": 10}}

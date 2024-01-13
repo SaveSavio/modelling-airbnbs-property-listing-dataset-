@@ -1,0 +1,1 @@
+{"best hyperparameters": {"alpha": 0.01, "eta0": 0.001, "learning_rate": "constant", "loss": "squared_error", "max_iter": 100000, "penalty": "elasticnet"}}

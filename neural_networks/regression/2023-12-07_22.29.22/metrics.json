@@ -1,0 +1,1 @@
+{"training_loss": 56.78519480999757, "validation_loss": 7.782437276075837, "R_squared": 0.19074934720993042, "validation_mae": 61.06632995605469, "training_duration": 2.870204448699951, "inference_latency": 0.00010426839192708333}

@@ -1,0 +1,1 @@
+{"best hyperparameters": {"ccp_alpha": 0.2, "max_depth": 5, "max_features": "log2", "min_samples_leaf": 2, "min_samples_split": 10}, "training_RMSE": 54.40208840871676, "validation_RMSE": 52.491306701009876, "validation_R^2": 0.00884711943897254, "validation_MAE": 41.63935897412316}

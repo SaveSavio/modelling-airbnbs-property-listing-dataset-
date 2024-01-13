@@ -20,6 +20,7 @@ class database_utils():
         df = df[df["Cleanliness_rating"]<=5] # drop a column with wrong rating
         return df
 
+
     def combine_description_strings(df):
         """
             Combines the list items in the description column into the same string,
@@ -36,6 +37,7 @@ class database_utils():
         df['Description'] = df['Description'].replace("''", "")
         return df
 
+
     def set_default_feature_values(df):
         """
         Replaces the empty rows in the colums "guests", "beds", "bathrooms", "bedrooms"
@@ -48,6 +50,7 @@ class database_utils():
         df[['guests', 'beds', 'bathrooms', 'bedrooms']] = df[['guests', 'beds', 'bathrooms', 'bedrooms']].fillna(value=1)
         return df
 
+
     def category_one_hot_encoding(df):
         """
             Encodes the column 'Category'
@@ -59,6 +62,7 @@ class database_utils():
         df['Category'] = df['Category'].astype('category')
         df = pd.get_dummies(df, columns=['Category'], dtype=int, prefix=['Category'])
         return df
+
 
     def location_one_hot_encoding(df):
         """
@@ -135,6 +139,7 @@ class database_utils():
         df = pd.get_dummies(df, columns=['Geographical_Area'], dtype=int, prefix=['Area'])
         return df
 
+
     def reduce_skewness(df):
         """
             Performs log trasform on selected data: Price_Night, 
@@ -149,15 +154,18 @@ class database_utils():
         # df = df.drop(columns=["Price_Night", "guests"])
         return df
     
+
     def remove_price_night_outliers(df):
         Price_Night_percentile = np.percentile(df['Price_Night'], 90, method='midpoint')
         df_Price_Night_without_ouliers = df[df['Price_Night'] < Price_Night_percentile]
         return df_Price_Night_without_ouliers
     
+
     def price_night_outliers_only(df):
         Price_Night_percentile = np.percentile(df['Price_Night'], 90, method='midpoint')
         df_Price_Night_without_ouliers = df[df['Price_Night'] > Price_Night_percentile]
         return df_Price_Night_without_ouliers
+
 
     def load_airbnb(df, label="label", numeric_only=False):
         """

@@ -134,6 +134,8 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
     training_time = 0 # initialize time performance indicators
     cumulative_inference_latency = 0
     
+    #history_training = []
+
     for epoch in range(epochs): # outer loop: epochs
 
         print("\nEpoch: ", epoch, "/", epochs)
@@ -149,6 +151,7 @@ def train(model, train_loader, validation_loader, optimizer='Adam', learning_rat
             optimizer.step() # optimization step
             optimizer.zero_grad() # set gradient to zero
 
+            #history_training.append(loss)
             writer.add_scalar('training loss rmse', # TensorFlow writer: add a step
                               np.sqrt(loss.item()), batch_idx)
             batch_idx += 1 # TensorFlow writer: increase the index for next step
