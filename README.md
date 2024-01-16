@@ -103,32 +103,36 @@ For each estimator, a hyperparameters grid was set and evaluated with a "brute f
 
 | Estimator | Training RMSE | Validation RMSE | Validation R^2 | Validation MAE |
 |----------|----------|----------|----------|----------|
-| SDGRegressor | 97.01 | 94.92 | 0.41 | 61.31 |
-| DecisionTreeRegressor | 100.29 | 107.97 | 0.24 | 69.33 |
-| RandomForestRegressor | 92.51 | 98.52 | 0.37 | 62.83 |
-| GradientBoostingRegressor | 94.43 | 111.40 | 0.19 |  66.18 |
+| SDGRegressor | 97.91 | 93.81 | 0.34 | 60.28 |
+| DecisionTreeRegressor | 104.37 | 107.91 | 0.13 | 65.76 |
+| RandomForestRegressor | 97.15 | 100.95 | 0.24 | 64.10 |
+| GradientBoostingRegressor | 96.05 | 101.35 | 0.24 |  65.52 |
 
 - The linear SGDRegressor is the baseline for our evaluation:
-  - has a validation RMSE of 97$
-  - R^2 is 0.41 meaning that only 41% of the Price/Night variance is explained by this model.
+  - has a validation RMSE of 94$
+  - R^2 is 0.34 meaning that only 34% of the Price/Night variance is explained by this model.
 
 Best hyperparameters:
 
-"alpha": 0.1, "eta0": 0.001, "learning_rate": "adaptive", "loss": "squared_error", "max_iter": 100000, "penalty": "l2"
+"alpha": 0.1, "eta0": 0.001, "learning_rate": "constant", "loss": "squared_error", "max_iter": 100000, "penalty": "elasticnet"
 
-- The other 3 models performance is close, with RandomForestRegressor showing marginally the best performance:
-  - validation RMSE 92$
-  - R^2 of 0.37.
+- The other 3 models performance is close. Anyway the SDG regressor shows the best performance whilst all the other models have a tendency to overfit meaning that they do not generalize.
+
+This might be due to
+- limitations in the data (e.g. noise)
+- limitations in the hyperparameters tuning
 
 It appears the regression models performance is limited by the amount of information provided by the numerical data.
-The R^2 is always below 0.5, meaning our models have limited ability to explain the variability in the label.
+The R^2 is always below 0.4 even for the best model, meaning our models have limited ability to explain the variability in the label.
 
 ### Regression models: outliers
 ![Boxplot](/price_night_boxplot.png)
 
-The plot above showes the data are quite right skewed. Quite a few listings above the 3rd quartile. In order to improve the RMSE and yet use the numerical data only, we have split the data into a dataset without "Price_Night" outliers. The strategy consists in removing the data above the 90th-percentile (89 examples in total).
+The plot above showes the data are quite right skewed. Quite a few listings' nightly price is above the 3rd quartile. In order to improve the RMSE and yet use the numerical data only, we have split the data into a dataset without "Price_Night" outliers. The strategy consists in removing the data above the 90th-percentile (89 examples in total).
 
-A dataset containing only the outliers is created as well. We report the results for the SDG regressor (baseline) and the best performer RandomForestRegressor.
+A dataset containing only the outliers is created as well. All the four models previously considered are fitted with the data with and without outliers.
+
+Below, for simplicity, we only report the results for the SDG regressor (baseline) and the best performer (RandomForestRegressor).
 
 | Estimator | Training RMSE | Validation RMSE | Test R^2 | Test MAE |
 |----------|----------|----------|----------|----------|
