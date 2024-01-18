@@ -148,14 +148,14 @@ It is debatable whether this approach could be useful or not in the real world w
 
 The file <u>modelling_NN_regression.py</u> implements a neural networks model to predict the "Price_Night" from numerical features (comprising one-hot-encoded).
 
-The deep model performs well as well as the RandomForestRegressor anyway it does not show a clear advantage.
+The deep model performs better than the regressors tested before and generalizes better on unseen data (no overfitting).
 
 | Estimator | Training RMSE | Validation RMSE | Validation R^2 | Validation MAE |
 |----------|----------|----------|----------|----------|
-| SDGRegressor | 97.01 | 94.92 | 0.41 | 61.31 |
-| DecisionTreeRegressor | 100.29 | 107.97 | 0.24 | 69.33 |
-| RandomForestRegressor | 92.51 | 98.52 | 0.37 | 62.83 |
-| GradientBoostingRegressor | 94.43 | 111.40 | 0.19 |  66.18 |
+| SDGRegressor | 97.91 | 93.81 | 0.34 | 60.28 |
+| DecisionTreeRegressor | 104.37 | 107.91 | 0.13 | 65.76 |
+| RandomForestRegressor | 97.15 | 100.95 | 0.24 | 64.10 |
+| GradientBoostingRegressor | 96.05 | 101.35 | 0.24 |  65.52 |
 | Neural Network | 93.14 | 85.82 | 0.43 |  65.35 |
 
 The training_duration for the best model is 1.75s. Inference_latency equals to 5.76e-05s.
